@@ -6,8 +6,6 @@
 ###############################################################################
 
 ### import modules
-import sys
-import numpy as np
 from sklearn.model_selection import ParameterGrid
 
 
@@ -22,12 +20,16 @@ def lorentzian(x, A, x0, d):
 # parameter optimize
 ###############################################################################
 
-#def make_grid_param(name_lst, median_lst, grid_num_lst, width_lst):
 def make_grid_param(param_info_dic):
     """
-    input       :
-    output      :
-    definition  :
+    input       : param_info_dic; dict
+                      => param_info_dic = {'param_1':[median, grid_num, width],
+                                           'param_2':[      ...              ],
+                                                    ......
+                                           }
+    output      : list
+    definition  : make param_lst, which includes all parameter set
+                  for grid search
     """
     dic = {}
     for key in param_info_dic.keys():
