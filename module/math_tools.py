@@ -2,44 +2,18 @@
 # -*- coding: utf-8 -*-
 
 ###############################################################################
-# preprocess raw data using this script
+# math tools using smooziee
 ###############################################################################
 
 ### import modules
 import sys
 import numpy as np
-from scipy.optimize import curve_fit
+from sklearn.model_selection import ParameterGrid
 
 
 ###############################################################################
 # functions
 ###############################################################################
-
-def multi_lorentzian(x, *param_lst):
-    """
-    input       : x => int or float or np.array
-                  param_lst; list => [A_0, x0_0, d_0], [A_1, x0_1, d_1], ...
-    output      :
-    definition  : f_0(x) = A_0 * ( d_0**2 / ((x-x0_0)**2 + d_0**2) )
-                  f_1(x) = A_1 * ( d_1**2 / ((x-x0_1)**2 + d_1**2) )
-                                ...
-
-                  f(x) = f_0(x) + f_1(x) + ...
-    """
-    def lorentzian(x, A, x0, d):
-        return A * ( d**2 / ((x-x0)**2 + d**2) )
-
-    y = 0
-    for each_param_lst in param_lst:
-        if len(each_param_lst) != len(param_lst):
-            print("len(each_param_lst) must be 3, found %s" % len(param_lst))
-            sys.exit(1)
-        y = y + lorentzian(param_lst[0], param_lst[1], param_lst[2])
-
-    return y
-
-def lorentzian_func(A, x0, d):
-    return lambda x: A * ( d**2 / ((x-x0)**2 + d**2) )
 
 def lorentzian(x, A, x0, d):
     return A * ( d**2 / ((x-x0)**2 + d**2) )
@@ -48,11 +22,21 @@ def lorentzian(x, A, x0, d):
 # parameter optimize
 ###############################################################################
 
-def param_optimizer(func, x_arr, y_arr):
+#def make_grid_param(name_lst, median_lst, grid_num_lst, width_lst):
+def make_grid_param(param_info_dic):
     """
-    input       : func; function => func=multi_lorentzian
-                  x_arr, y_arr; np.array
-    output      : 
-    definition  : parameter fitting using 'scipy.optimize.curve_fit'
+    input       :
+    output      :
+    definition  :
     """
-    return curve_fit(func, x_arr, y_arr)
+    dic = {}
+    for key in param_info_dic.keys():
+        median = param_info_dic[key][0]
+        grid_num = param_info_dic[key][1]
+        width = param_info_dic[key][2]
+        min_val = median - ((grid_num - 1) * width / 2)
+        each_param_lst = [ min_val+i*width for i in range(grid_num) ]
+        dic[key] = each_param_lst
+    param_lst = list(ParameterGrid(dic))
+
+    return param_lst
