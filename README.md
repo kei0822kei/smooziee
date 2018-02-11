@@ -29,7 +29,7 @@ see more infomation
 
 ## functions
 lorentzian  
-```math  
+``` math
     f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
 ```
 
