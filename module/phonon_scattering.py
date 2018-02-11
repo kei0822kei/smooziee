@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import pandas as pd
 import scipy.optimize
+from scipy.signal import argrelmax
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
 
@@ -19,7 +20,7 @@ from sklearn.metrics import mean_squared_error
 # find peak from input data
 ###############################################################################
 
-def find_peak(data_lst, order=5):
+def find_peak(data_lst, order=20):
     """
     input       : data_arr; lst or np.array(1 dimension)
                   order; int => default (order=5)
@@ -30,8 +31,8 @@ def find_peak(data_lst, order=5):
                   see more about 'scipy.signal.argrelmax'
                   http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
     """
-    from scipy.signal import argrelmax
     idx_arr = argrelmax(np.array(data_lst), order=order)
+    print("found %s peaks" % len(idx_arr[0]))
 
     return idx_arr
 
@@ -53,15 +54,15 @@ class Process():
         """
         data_df = pd.read_csv(raw_data, sep='\s+')
         self.data_df = data_df
+        self.filename = os.path.basename(raw_data)
 
-    def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw', get_data=False,
-                     order=5, xlabel='x', ylabel='y', fontsize=10):
+    def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw',
+                     get_data=False, order=20, fontsize=10):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
-                        data_arr; np.array => 2-dimension
-                        run_mode; str => default (run_mode='raw')
                         param_nw_dic; dic => {'A':[grid_num, width], 'x0': ...}
-                        order; int => default (order=5)
+                        run_mode; str => default (run_mode='raw')
+                        order; int or float => default (order=5)
         output        : ax
         option        : run_mode; 'raw' or 'peak' or 'smooth'
         description   : return ax which is painted data plot and data peak
@@ -76,7 +77,6 @@ class Process():
         if run_mode == 'peak':
             peak_idx_lst = find_peak(
                                data_arr[:,1], order=order)[0]
-            print(peak_idx_lst)
             ax.scatter(data_arr[peak_idx_lst,0], data_arr[peak_idx_lst,1],
                        c='black', s=10)
 
@@ -84,7 +84,6 @@ class Process():
         if run_mode == 'smooth':
             peak_idx_lst = find_peak(
                                data_arr[:,1], order=order)[0]
-            print(peak_idx_lst)
 
             ### initial smoothing
             init_A_lst = []
@@ -104,9 +103,12 @@ class Process():
             ### make parameter for grid search
             param_info_dic = {}
             for i in range(len(init_A_lst)):
-                param_info_dic['A_'+str(i)] = [init_A_lst[i], param_nw_dic['A'][0], param_nw_dic['A'][1]]
-                param_info_dic['x0_'+str(i)] = [init_x0_lst[i], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
-                param_info_dic['d_'+str(i)] = [init_d_lst[i], param_nw_dic['d'][0], param_nw_dic['d'][1]]
+                param_info_dic['A_'+str(i)] = \
+                  [init_A_lst[i], param_nw_dic['A'][0], param_nw_dic['A'][1]]
+                param_info_dic['x0_'+str(i)] = \
+                  [init_x0_lst[i], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
+                param_info_dic['d_'+str(i)] = \
+                  [init_d_lst[i], param_nw_dic['d'][0], param_nw_dic['d'][1]]
             param_lst = math_tools.make_grid_param(param_info_dic)
 
             ### grid search
@@ -114,29 +116,34 @@ class Process():
             for param_dic in param_lst:
                 smooth_y_arr = 0
                 for i in range(len(init_A_lst)):
-                    smooth_y_arr = smooth_y_arr + math_tools.lorentzian(data_arr[:, 0],
+                    smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
+                                       data_arr[:, 0],
                                        param_dic['A_'+str(i)],
                                        param_dic['x0_'+str(i)],
                                        param_dic['d_'+str(i)]
-                                       )
-                score_lst.append(mean_squared_error(data_arr[:,1], smooth_y_arr))
+                                   )
+                score_lst.append(
+                    mean_squared_error(data_arr[:,1], smooth_y_arr))
 
             best_score_idx = score_lst.index(min(score_lst))
             final_param_dic = param_lst[best_score_idx]
 
-            curve_x_arr = np.linspace(min(data_arr[:,0]), max(data_arr[:,0]), 200)
+            curve_x_arr = np.linspace(
+                min(data_arr[:,0]), max(data_arr[:,0]), 200)
             curve_y_arr = 0
             for i in range(len(init_A_lst)):
                 curve_y_arr += math_tools.lorentzian(curve_x_arr,
                                    final_param_dic['A_'+str(i)],
                                    final_param_dic['x0_'+str(i)],
                                    final_param_dic['d_'+str(i)]
-                                   )
+                               )
+                ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
+                        linestyle='--')
 
             ### plot
-            ax.plot(curve_x_arr, curve_y_arr, c='black')
+            ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
 
         ### setting
-        ax.set_xlabel(xlabel, fontsize=fontsize)
-        ax.set_ylabel(ylabel, fontsize=fontsize)
-        ax.set_title(xlabel+'-'+ylabel+' plot')
+        ax.set_xlabel('meV', fontsize=fontsize)
+        ax.set_ylabel('y_unitpk', fontsize=fontsize)
+        ax.set_title(self.filename)
