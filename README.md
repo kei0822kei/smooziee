@@ -24,7 +24,7 @@ smoothing
 % smooziee-phscat.py --filename="path/to/smooziee/example/KCl_GXL511_m0p25_RT_4" --run_mode='smooth' --order=10 --param_A="2 0.02" --param_x0="3 0.5" --param_d="1 0.03"
 
 see more infomation  
-% smooziee-phscat -h
+% smooziee-phscat.py -h
 
 
 ## Install
