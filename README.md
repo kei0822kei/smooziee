@@ -30,7 +30,7 @@ see more infomation
 ## functions
 lorentzian  
 ``` math
-F(s)=\int_{0}^{\infty}f(t)e^{-st}dt
+    f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
 ```
 
 
