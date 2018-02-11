@@ -28,7 +28,7 @@ see more infomation
 
 
 ## Install
-git clone https://github.com/kei0822kei/smooziee  
+% git clone https://github.com/kei0822kei/smooziee  
 please make a path to "smooziee/scripts"
 
 
