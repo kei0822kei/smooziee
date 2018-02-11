@@ -27,6 +27,11 @@ see more infomation
 % smooziee-phscat -h
 
 
+## Install
+git clone https://github.com/kei0822kei/smooziee  
+please make a path to "smooziee/scripts"
+
+
 ## Author
 
 [kei0822kei](https://github.com/kei0822kei)
