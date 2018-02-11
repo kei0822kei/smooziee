@@ -29,11 +29,9 @@ see more infomation
 
 ## functions
 lorentzian  
-```math
 \begin{eqnarray}
     f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
 \end{eqnarray}
-```
 
 
 ## Install
