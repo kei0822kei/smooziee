@@ -40,5 +40,6 @@ def make_grid_param(param_info_dic):
         each_param_lst = [ min_val+i*width for i in range(grid_num) ]
         dic[key] = each_param_lst
     param_lst = list(ParameterGrid(dic))
+    print("total grid parameter is %s" % len(param_lst))
 
     return param_lst

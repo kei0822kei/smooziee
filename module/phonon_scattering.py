@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import pandas as pd
 import scipy.optimize
+from scipy.signal import argrelmax
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
 
@@ -30,8 +31,8 @@ def find_peak(data_lst, order=20):
                   see more about 'scipy.signal.argrelmax'
                   http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
     """
-    from scipy.signal import argrelmax
     idx_arr = argrelmax(np.array(data_lst), order=order)
+    print("found %s peaks" % len(idx_arr[0]))
 
     return idx_arr
 
@@ -53,6 +54,7 @@ class Process():
         """
         data_df = pd.read_csv(raw_data, sep='\s+')
         self.data_df = data_df
+        self.filename = os.path.basename(raw_data)
 
     def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw',
                      get_data=False, order=20, fontsize=10):
@@ -75,7 +77,6 @@ class Process():
         if run_mode == 'peak':
             peak_idx_lst = find_peak(
                                data_arr[:,1], order=order)[0]
-            print(peak_idx_lst)
             ax.scatter(data_arr[peak_idx_lst,0], data_arr[peak_idx_lst,1],
                        c='black', s=10)
 
@@ -83,7 +84,6 @@ class Process():
         if run_mode == 'smooth':
             peak_idx_lst = find_peak(
                                data_arr[:,1], order=order)[0]
-            print(peak_idx_lst)
 
             ### initial smoothing
             init_A_lst = []
@@ -137,11 +137,13 @@ class Process():
                                    final_param_dic['x0_'+str(i)],
                                    final_param_dic['d_'+str(i)]
                                )
+                ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
+                        linestyle='--')
 
             ### plot
-            ax.plot(curve_x_arr, curve_y_arr, c='black')
+            ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
 
         ### setting
         ax.set_xlabel('meV', fontsize=fontsize)
         ax.set_ylabel('y_unitpk', fontsize=fontsize)
-        ax.set_title('meV-y_unitpk plot')
+        ax.set_title(self.filename)
