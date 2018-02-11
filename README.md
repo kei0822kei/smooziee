@@ -14,17 +14,22 @@ find out peak, and then fit to the data using the same number of lorentzian as p
 
 
 ## Usage
-plot raw data
+plot raw data  
 % smooziee-phscat.py --filename="path/to/smooziee/example/KCl_GXL511_m0p25_RT_4" --run_mode='raw'
 
-find peak
+find peak  
 % smooziee-phscat.py --filename="path/to/smooziee/example/KCl_GXL511_m0p25_RT_4" --run_mode='peak' --order=10
 
-smoothing
+smoothing  
 % smooziee-phscat.py --filename="path/to/smooziee/example/KCl_GXL511_m0p25_RT_4" --run_mode='smooth' --order=10 --param_A="2 0.02" --param_x0="3 0.5" --param_d="1 0.03"
 
-see more infomation
+see more infomation  
 % smooziee-phscat -h
+
+
+## Install
+% git clone https://github.com/kei0822kei/smooziee  
+please make a path to "smooziee/scripts"
 
 
 ## Author
