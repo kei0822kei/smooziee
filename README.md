@@ -27,6 +27,13 @@ see more infomation
 % smooziee-phscat.py -h
 
 
+## functions
+lorentzian  
+``` math
+    f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
+```
+
+
 ## Install
 % git clone https://github.com/kei0822kei/smooziee  
 please make a path to "smooziee/scripts"
