@@ -33,10 +33,6 @@ lorentzian
     f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
 ```
 
-``` math
-F(s)=\int_{0}^{\infty}f(t)e^{-st}dt
-```
-
 
 ## Install
 % git clone https://github.com/kei0822kei/smooziee  
