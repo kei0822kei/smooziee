@@ -30,7 +30,9 @@ see more infomation
 ## functions
 lorentzian  
 ```math
-f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
+$$
+    f(x) = A\frac{d^2}{(x - x_0)^2 + d^2}
+$$
 ```
 
 
