@@ -36,6 +36,8 @@ parser.add_argument('--param_d', type=str, default='1 0.02',
                           ex) --param_d='1 0.02' (default)")
 parser.add_argument('--order', type=int, default=20,
                     help="the more order num is, the less you find its peaks")
+parser.add_argument('--savefig', type=str,
+                    help="directory where figure is saved")
 args = parser.parse_args()
 
 ### main
@@ -69,4 +71,4 @@ if args.run_mode == 'smooth':
     scat.meV_y_unitpk(ax, param_nw_dic=param_nw_dic, run_mode=args.run_mode,
                       order=args.order)
 
-plt.show()
+plt.savefig(args.savefig)
