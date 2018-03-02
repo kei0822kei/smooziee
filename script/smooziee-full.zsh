@@ -53,7 +53,7 @@ function concat_fig()
 
 ### zparseopts
 local -A opthash
-zparseopts -D -A opthash -- h -raw -peak -concat
+zparseopts -D -A opthash -- h -raw -peak -smooth -concat
 
 if [[ -n "${opthash[(i)-h]}" ]]; then
   usage
@@ -81,6 +81,19 @@ if [[ -n "${opthash[(i)--peak]}" ]]; then
   for DATA in $DATA_PATH:
   do
     smooziee-phscat.py --filename=$1/$DATA --run_mode='peak' --order=$3 --savefig="$2/${DATA}_peak.png"
+  done
+  exit 0
+fi
+
+if [[ -n "${opthash[(i)--smooth]}" ]]; then
+  ### $1 => df path
+  ### $2 => save dir
+  ### $3 => order
+  mkdir $2
+  DATA_PATH=(`get_path $1`)
+  for DATA in $DATA_PATH:
+  do
+    smooziee-phscat.py --filename=$1/$DATA --run_mode='smooth' --order=$3 --savefig="$2/${DATA}_peak.png" --param_A="1 0.02" --param_x0="3 0.5" --param_d="1 0.03" --threshold=6
   done
   exit 0
 fi
