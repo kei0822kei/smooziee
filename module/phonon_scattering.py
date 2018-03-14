@@ -100,7 +100,6 @@ class Process():
                 init_x0_lst.append(init_param_lst[0][1])
                 init_d_lst.append(init_param_lst[0][2])
 
-            print(init_A_lst)
             ### condition => stokes anti-stokes
             pear_lst = []
             flag_lst = []
@@ -113,8 +112,6 @@ class Process():
                           (init_d_lst[i] + init_d_lst[j]) / 2
                         pear_lst.append([i, j])
                         flag_lst.extend([i, j])
-                        print(pear_lst)
-                        print(flag_lst)
 
             ### scatter
             color_lst = ['pink', 'yellow', 'green']
