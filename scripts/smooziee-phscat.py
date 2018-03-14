@@ -36,6 +36,12 @@ parser.add_argument('--param_d', type=str, default='1 0.02',
                           ex) --param_d='1 0.02' (default)")
 parser.add_argument('--order', type=int, default=20,
                     help="the more order num is, the less you find its peaks")
+parser.add_argument('--threshold', type=int, default=6,
+                    help="use this value, finding stokes anti-stokes")
+parser.add_argument('--show', type=bool, default=False,
+                    help="show figure (default) False")
+parser.add_argument('--savefig', type=str,
+                    help="directory where figure is saved")
 args = parser.parse_args()
 
 ### main
@@ -67,6 +73,9 @@ if args.run_mode == 'smooth':
 
     param_nw_dic = {'A': A_lst, 'x0': x0_lst, 'd': d_lst}
     scat.meV_y_unitpk(ax, param_nw_dic=param_nw_dic, run_mode=args.run_mode,
-                      order=args.order)
+                      order=args.order, threshold=args.threshold)
 
-plt.show()
+plt.savefig(args.savefig)
+
+if args.show == True:
+    plt.show()

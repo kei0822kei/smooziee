@@ -56,7 +56,7 @@ class Process():
         self.data_df = data_df
         self.filename = os.path.basename(raw_data)
 
-    def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw',
+    def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw', threshold=6,
                      get_data=False, order=20, fontsize=10):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
@@ -100,6 +100,31 @@ class Process():
                 init_x0_lst.append(init_param_lst[0][1])
                 init_d_lst.append(init_param_lst[0][2])
 
+            ### condition => stokes anti-stokes
+            pear_lst = []
+            flag_lst = []
+            for i in range(int(len(peak_idx_lst)/2)):
+                #for j in range(len(peak_idx_lst)-1, i, -1):
+                for j in range(len(peak_idx_lst)-1, i, -1):
+                    if abs(abs(init_x0_lst[i])-abs(init_x0_lst[j])) < threshold \
+                            and i not in flag_lst and j not in flag_lst:
+                        init_d_lst[i] = init_d_lst[j] = \
+                          (init_d_lst[i] + init_d_lst[j]) / 2
+                        pear_lst.append([i, j])
+                        flag_lst.extend([i, j])
+
+            ### scatter
+            color_lst = ['pink', 'yellow', 'green']
+            c_lst = [ 'black' for _ in range(len(peak_idx_lst)) ]
+            for i in range(len(pear_lst)):
+                for j in pear_lst[i]:
+                    c_lst[j] = color_lst[i]
+            print(c_lst)
+
+            for i in range(len(peak_idx_lst)):
+                ax.scatter(data_arr[peak_idx_lst[i],0], data_arr[peak_idx_lst[i],1],
+                       c=c_lst[i], s=30)
+
             ### make parameter for grid search
             param_info_dic = {}
             for i in range(len(init_A_lst)):
@@ -114,8 +139,16 @@ class Process():
             ### grid search
             score_lst =[]
             for param_dic in param_lst:
+                for each_pear_lst in pear_lst:
+                    if param_dic['d_'+str(each_pear_lst[0])] != param_dic['d_'+str(each_pear_lst[1])]:
+                        continue
+
                 smooth_y_arr = 0
                 for i in range(len(init_A_lst)):
+                    ### condition => 2d must be more than 1.5 meV
+                    if param_dic['d_'+str(i)] < 0.75:
+                        param_dic['d_'+str(i)] = 0.75
+
                     smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
                                        data_arr[:, 0],
                                        param_dic['A_'+str(i)],
@@ -127,6 +160,7 @@ class Process():
 
             best_score_idx = score_lst.index(min(score_lst))
             final_param_dic = param_lst[best_score_idx]
+            print("final parameter is "+str(final_param_dic))
 
             curve_x_arr = np.linspace(
                 min(data_arr[:,0]), max(data_arr[:,0]), 200)
