@@ -11,10 +11,14 @@ import sys
 import numpy as np
 import pandas as pd
 import scipy.optimize
-import joblib
 from scipy.signal import argrelmax
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
+
+
+###############################################################################
+# find peak from input data
+###############################################################################
 
 
 ###############################################################################
@@ -44,7 +48,7 @@ class Process():
         self.grid_param_lst = None
 
 
-    def find_peak(self, order=20):
+    def find_peak(order=20):
         """
         input       : data_arr; lst or np.array(1 dimension)
                       order; int => default (order=5)
@@ -59,7 +63,7 @@ class Process():
         print("found %s peaks" % len(self.peak_idx_lst[0]))
 
 
-    def revise_peak(self, peak_arr):
+    def revise_peak(peak_arr):
         """
         input       : peak_arr; np.array => revise self.peak_idx_lst
         description : revise self.peak_idx_lst
@@ -68,7 +72,7 @@ class Process():
         self.peak_idx_lst = peak_arr
 
 
-    def find_peak_pair(self, threshold=6):
+    def find_peak_pair(threshold=6):
         """
         input       : threshold; float or int => threshold=6 (default)
         description : recognize A and B as pair if abs(A) - abs(B) < threshold
@@ -192,10 +196,10 @@ class Process():
         for param_dic in self.grid_param_lst:
 
             smooth_y_arr = 0
-            for i in range(len(self.peak_idx_lst)):
+            for i in range(len(init_A_lst)):
                 ### condition => 2d must be more than 1.5 meV
-                #if param_dic['d_'+str(i)] < 0.75:
-                #    param_dic['d_'+str(i)] = 0.75
+                if param_dic['d_'+str(i)] < 0.75:
+                    param_dic['d_'+str(i)] = 0.75
 
                 smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
                                    data_arr[:, 0],
@@ -207,28 +211,34 @@ class Process():
                 mean_squared_error(data_arr[:,1], smooth_y_arr))
 
         best_score_idx = score_lst.index(min(score_lst))
-        print("best score was %s" % str(min(score_lst)))
         final_param_dic = param_lst[best_score_idx]
-        best_param_lst = []
-        for i in range(len(self.peak_idx_lst)):
-            best_param_lst.append(
-                [final_param_dic['A_'+str(i)], \
-                 final_param_dic['x0_'+str(i)], \
-                 final_param_dic['d_'+str(i)]])
-        self.best_param_lst = best_param_lst
-        print("best param was set to self.best_param_lst")
+        print("final parameter is "+str(final_param_dic))
+
+        curve_x_arr = np.linspace(
+            min(data_arr[:,0]), max(data_arr[:,0]), 200)
+        curve_y_arr = 0
+        for i in range(len(init_A_lst)):
+            curve_y_arr += math_tools.lorentzian(curve_x_arr,
+                               final_param_dic['A_'+str(i)],
+                               final_param_dic['x0_'+str(i)],
+                               final_param_dic['d_'+str(i)]
+                           )
+            ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
+                    linestyle='--')
+
+        ### plot
+        ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
+
+        setting
+        et_xlabel('meV', fontsize=fontsize)
+        et_ylabel('y_unitpk', fontsize=fontsize)
+        et_title(self.filename)
 
 
-    def saveobj(self, savefile=self.filename):
-        """
-        input         : savefile
-        description   : joblib.dump(self, savefile)
-        """
-        joblib.dump(self, savefile)
 
 
-
-    def plot(self, ax, param_nw_dic=None, run_mode='raw', threshold=6,
+    def meV_y_unitpk(self, ax, param_nw_dic=None, run_mode='raw', threshold=6,
+                     get_data=False, order=20, fontsize=10):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
                         param_nw_dic; dic => {'A':[grid_num, width], 'x0': ...}
