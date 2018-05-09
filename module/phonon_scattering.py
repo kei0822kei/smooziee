@@ -41,7 +41,7 @@ class Process():
         self.peak_idx_lst = None
         self.peak_pair_idx_lst = None  ### [[a, b], [c, d]]
         self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
-        self.grid_param_lst = None
+        # self.grid_param_lst = None
 
 
     def find_peak(self, order=20):
@@ -245,102 +245,32 @@ class Process():
         ax.scatter(data_arr[:,0], data_arr[:,1], c='red', s=2)
 
         ### find peak
-        if run_mode == 'peak':
-            peak_idx_lst = find_peak(
-                               data_arr[:,1], order=order)[0]
-            ax.scatter(data_arr[peak_idx_lst,0], data_arr[peak_idx_lst,1],
-                       c='black', s=10)
-
+        if self.best_param_lst == None:
+            if self.peak_idx_lst != None:
+                ax.scatter(data_arr[self.peak_idx_lst,0], data_arr[self.peak_idx_lst,1],
+                           c='black', s=10)
+    
         ### smoothing
-        if run_mode == 'smooth':
-            peak_idx_lst = find_peak(
-                               data_arr[:,1], order=order)[0]
-
-            ### initial smoothing
-            init_A_lst = []
-            init_x0_lst = []
-            init_d_lst = []
-            for peak_idx in peak_idx_lst:
-                init_param_lst = scipy.optimize.curve_fit(
-                    math_tools.lorentzian,
-                    data_arr[peak_idx-10:peak_idx+10, 0],
-                    data_arr[peak_idx-10:peak_idx+10, 1],
-                    p0=[data_arr[peak_idx, 1], data_arr[peak_idx, 0], 1.]
-                )
-                init_A_lst.append(init_param_lst[0][0])
-                init_x0_lst.append(init_param_lst[0][1])
-                init_d_lst.append(init_param_lst[0][2])
-
-            ### condition => stokes anti-stokes
-            pear_lst = []
-            flag_lst = []
-            for i in range(int(len(peak_idx_lst)/2)):
-                #for j in range(len(peak_idx_lst)-1, i, -1):
-                for j in range(len(peak_idx_lst)-1, i, -1):
-                    if abs(abs(init_x0_lst[i])-abs(init_x0_lst[j])) < threshold \
-                            and i not in flag_lst and j not in flag_lst:
-                        init_d_lst[i] = init_d_lst[j] = \
-                          (init_d_lst[i] + init_d_lst[j]) / 2
-                        pear_lst.append([i, j])
-                        flag_lst.extend([i, j])
-
+        else:
             ### scatter
             color_lst = ['pink', 'yellow', 'green']
-            c_lst = [ 'black' for _ in range(len(peak_idx_lst)) ]
-            for i in range(len(pear_lst)):
-                for j in pear_lst[i]:
+            c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
+            for i in range(len(self.peak_pair_idx_lst)):
+                for j in self.peak_pair_idx_lst[i]:
                     c_lst[j] = color_lst[i]
             print(c_lst)
 
-            for i in range(len(peak_idx_lst)):
-                ax.scatter(data_arr[peak_idx_lst[i],0], data_arr[peak_idx_lst[i],1],
-                       c=c_lst[i], s=30)
-
-            ### make parameter for grid search
-            param_info_dic = {}
-            for i in range(len(init_A_lst)):
-                param_info_dic['A_'+str(i)] = \
-                  [init_A_lst[i], param_nw_dic['A'][0], param_nw_dic['A'][1]]
-                param_info_dic['x0_'+str(i)] = \
-                  [init_x0_lst[i], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
-                param_info_dic['d_'+str(i)] = \
-                  [init_d_lst[i], param_nw_dic['d'][0], param_nw_dic['d'][1]]
-            param_lst = math_tools.make_grid_param(param_info_dic)
-
-            ### grid search
-            score_lst =[]
-            for param_dic in param_lst:
-                for each_pear_lst in pear_lst:
-                    if param_dic['d_'+str(each_pear_lst[0])] != param_dic['d_'+str(each_pear_lst[1])]:
-                        continue
-
-                smooth_y_arr = 0
-                for i in range(len(init_A_lst)):
-                    ### condition => 2d must be more than 1.5 meV
-                    if param_dic['d_'+str(i)] < 0.75:
-                        param_dic['d_'+str(i)] = 0.75
-
-                    smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
-                                       data_arr[:, 0],
-                                       param_dic['A_'+str(i)],
-                                       param_dic['x0_'+str(i)],
-                                       param_dic['d_'+str(i)]
-                                   )
-                score_lst.append(
-                    mean_squared_error(data_arr[:,1], smooth_y_arr))
-
-            best_score_idx = score_lst.index(min(score_lst))
-            final_param_dic = param_lst[best_score_idx]
-            print("final parameter is "+str(final_param_dic))
+            for i in range(len(self.peak_pair_idx_lst)):
+                ax.scatter(data_arr[self.peak_pair_idx_lst[i],0], \
+                           data_arr[self.peak_pair_idx_lst[i],1],
+                           c=c_lst[i], s=30)
 
             curve_x_arr = np.linspace(
                 min(data_arr[:,0]), max(data_arr[:,0]), 200)
             curve_y_arr = 0
-            for i in range(len(init_A_lst)):
+            for param in range(len(self.best_param_lst)):
                 curve_y_arr += math_tools.lorentzian(curve_x_arr,
-                                   final_param_dic['A_'+str(i)],
-                                   final_param_dic['x0_'+str(i)],
-                                   final_param_dic['d_'+str(i)]
+                                   param[0], param[1], param[2]
                                )
                 ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
                         linestyle='--')
