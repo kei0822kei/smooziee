@@ -15,6 +15,7 @@ import h5py
 from scipy.signal import argrelmax
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
 
 
 ###############################################################################
@@ -59,6 +60,47 @@ class Process():
         self.peak_idx_lst = list(argrelmax_return_tuple[0])
         if notice:
             print("found %s peaks" % len(self.peak_idx_lst))
+
+
+    def add_peak(self, idx, run_mode='test'):
+        """
+        input       : run_mode; str => 'test' or 'add'
+        """
+        data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
+
+        if run_mode == 'test':
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            self.plot(ax)
+            print(data_arr[idx,0], data_arr[idx,1])
+            ax.scatter(data_arr[idx,0], data_arr[idx,1], marker="*", c='blue', s=100)
+            plt.show()
+
+        elif run_mode == 'add':
+            self.peak_idx_lst.append(idx)
+            # if self.best_param_lst != None:
+            #     idx_range = 3
+            #     param_lst = scipy.optimize.curve_fit(
+            #         math_tools.lorentzian,
+            #         data_arr[idx-idx_range:idx+idx_range, 0],
+            #         data_arr[idx-idx_range:idx+idx_range, 1],
+            #         ### p0 => initial peak point
+            #         p0=[data_arr[idx, 1], data_arr[idx, 0], 1.]
+            #     )
+            #     self.best_param_lst.append( \
+            #         [param_lst[0][0], param_lst[0][1], param_lst[0][2]])
+            #     else:
+            #         self.peak_idx_lst.sort
+
+            self.best_param_lst.append([data_arr[idx,0], data_arr[idx,1], self.best_param_lst[0][2]])
+
+            # arr = np.sort(np.array([self.peak_idx_lst, self.best_param_lst]))
+            # self.peak_idx_lst = list(arr[0])
+            # self.best_param_lst = list(arr[1])
+
+
+
+
 
 
     def revise_peak(self, peak_arr):
