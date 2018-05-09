@@ -233,7 +233,6 @@ class Process():
         joblib.dump(obj, savefile)
 
 
-
     def plot(self, ax):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
@@ -280,3 +279,9 @@ class Process():
         ax.set_xlabel('meV')
         ax.set_ylabel('y_unitpk')
         ax.set_title(self.filename)
+
+    def makecsv(self):
+        ### File ID
+        name_lst = self.filename(sep='_')
+        File_ID = name_lst[2]+"_"+name_
+
