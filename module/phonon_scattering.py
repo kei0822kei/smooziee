@@ -240,9 +240,6 @@ class Process():
         if savefile == None:
             savefile = self.filename+'.hdf5'
         outfh = h5py.File(savefile, 'w')
-        self.peak_idx_lst = None  ### ex) [36, 62, 97]
-        self.peak_pair_idx_lst = None  ### ex) [[36, 97], [...], ...]
-        self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
         outfh.create_dataset('filename', data = self.filename)
         outfh.create_dataset('peak_idx_lst', data = self.peak_idx_lst)
         outfh.create_dataset('peak_pair_idx_lst', data = self.peak_pair_idx_lst)
@@ -251,7 +248,7 @@ class Process():
         outfh.close()
 
 
-    def load(self, loadfile)
+    def load(self, loadfile):
         infh = h5py.File(loadfile, 'r')
 
         ### check
@@ -259,9 +256,9 @@ class Process():
             print("file name of this object" % self.filename)
             print("load file name is %s" % infh['filename'].value)
 
-        self.peak_idx_lst = infh['peak_idx_lst'].value
-        self.peak_pair_idx_lst = infh['peak_pair_idx_lst'].value
-        self.peak_param_lst = infh['best_param_lst'].value
+        self.peak_idx_lst = list(infh['peak_idx_lst'].value)
+        self.peak_pair_idx_lst = list(map(list, infh['peak_pair_idx_lst'].value))
+        self.best_param_lst = list(map(list, infh['best_param_lst'].value))
         infh.close()
 
     def plot(self, ax, run_mode=None):
