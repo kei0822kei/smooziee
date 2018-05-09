@@ -13,6 +13,7 @@ import pandas as pd
 import scipy.optimize
 import joblib
 from scipy.signal import argrelmax
+sys.path.append("/Users/keiyu/Github")
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
 
@@ -55,8 +56,10 @@ class Process():
                       see more about 'scipy.signal.argrelmax'
                       http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
-        self.peak_idx_lst = argrelmax(np.array(data_lst), order=order)
-        print("found %s peaks" % len(self.peak_idx_lst[0]))
+        argrelmax_return_tuple = argrelmax(np.array(self.data_df.loc[:, ['y_unitpk']]), order=order)
+        self.peak_idx_lst = list(argrelmax_return_tuple[0])
+        print(self.peak_idx_lst)
+        print("found %s peaks" % len(self.peak_idx_lst))
 
 
     def revise_peak(self, peak_arr):
@@ -74,28 +77,26 @@ class Process():
         description : recognize A and B as pair if abs(A) - abs(B) < threshold
         set         : self.peak_pair_idx_lst
         """
-        if self.peak_idx_lst == None:
+        if self.peak_idx_lst is None:
             print("You have to execute find_peak ahead !")
             sys.exit(1)
 
         ### condition => stokes anti-stokes
         pair_lst = []
         flag_lst = []
-        for i in range(int(len(peak_idx_lst)/2)):
+        for i in range(int(len(self.peak_idx_lst)/2)):
             #for j in range(len(peak_idx_lst)-1, i, -1):
-            for j in range(len(peak_idx_lst)-1, i, -1):
-                if abs(abs(init_x0_lst[i])-abs(init_x0_lst[j])) < threshold \
+            for j in range(len(self.peak_idx_lst)-1, i, -1):
+                if abs(abs(self.data_df.loc[i]['meV'])-abs(self.data_df.loc[j]['meV'])) < threshold \
                         and i not in flag_lst and j not in flag_lst:
-                    init_d_lst[i] = init_d_lst[j] = \
-                      (init_d_lst[i] + init_d_lst[j]) / 2
-                    pair_lst.append([i, j])
+                    pair_lst.append([self.peak_idx_lst[i], self.peak_idx_lst[j]])
                     flag_lst.extend([i, j])
 
         self.peak_pair_idx_lst = pair_lst
         print("found %s pair" % str(len(self.peak_pair_idx_lst)))
 
 
-    def initial_fit(idx_range=10):
+    def initial_fit(self, idx_range=10):
         """
         input       : idx_range; int => idx_range = 10 (default)
                           peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
@@ -134,7 +135,7 @@ class Process():
         self.best_param_lst = best_param_lst
 
 
-    def make_grid_param(param_nw_dic=
+    def make_grid_param(self, param_nw_dic=
                             {'A':[3, 0.02], 'x0':[1, 0.5], 'd':[1, 0.02]}):
         """
         input       : idx_range; int => idx_range = 10 (default)
@@ -177,7 +178,7 @@ class Process():
         self.grid_param_lst = param_lst
 
 
-    def grid_search():
+    def grid_search(self):
         """
         set         : self.best_param_lst
         description : execute grid search using self.param_lst
@@ -219,16 +220,17 @@ class Process():
         print("best param was set to self.best_param_lst")
 
 
-    def saveobj(self, savefile=self.filename):
+    # def saveobj(self, obj, savefile=self.filename):
+    def saveobj(self, obj, savefile):
         """
         input         : savefile
         description   : joblib.dump(self, savefile)
         """
-        joblib.dump(self, savefile)
+        joblib.dump(obj, savefile)
 
 
 
-    def plot(self, ax, param_nw_dic=None, run_mode='raw', threshold=6,
+    def plot(self, ax):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
                         param_nw_dic; dic => {'A':[grid_num, width], 'x0': ...}
@@ -238,47 +240,49 @@ class Process():
         option        : run_mode; 'raw' or 'peak' or 'smooth'
         description   : return ax which is painted data plot and data peak
         """
-        ### check run_mode
-
         ### raw data
         data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
         ax.scatter(data_arr[:,0], data_arr[:,1], c='red', s=2)
 
         ### find peak
-        if self.best_param_lst == None:
-            if self.peak_idx_lst != None:
-                ax.scatter(data_arr[self.peak_idx_lst,0], data_arr[self.peak_idx_lst,1],
-                           c='black', s=10)
-    
+        # if self.best_param_lst is None:
+        if self.peak_idx_lst is not None:
+            if self.peak_pair_idx_lst is None:
+                c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
+            else:
+                c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
+                color_lst = ['green', 'yellow', 'pink']
+                for i in range(len(self.peak_pair_idx_lst)):
+                    for j in self.peak_pair_idx_lst[i]:
+                        c_lst[self.peak_idx_lst.index(j)] = color_lst[i]
+
+            ax.scatter(data_arr[self.peak_idx_lst,0], \
+                       data_arr[self.peak_idx_lst,1],
+                       c=c_lst, s=30)
+
+
+            # else:
+            #     ax.scatter(data_arr[self.peak_idx_lst, 0], data_arr[self.peak_idx_lst, 1],
+            #                c='black', s=10)
+
         ### smoothing
-        else:
+        # else:
             ### scatter
-            color_lst = ['pink', 'yellow', 'green']
-            c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
-            for i in range(len(self.peak_pair_idx_lst)):
-                for j in self.peak_pair_idx_lst[i]:
-                    c_lst[j] = color_lst[i]
-            print(c_lst)
 
-            for i in range(len(self.peak_pair_idx_lst)):
-                ax.scatter(data_arr[self.peak_pair_idx_lst[i],0], \
-                           data_arr[self.peak_pair_idx_lst[i],1],
-                           c=c_lst[i], s=30)
+            # curve_x_arr = np.linspace(
+            #     min(data_arr[:,0]), max(data_arr[:,0]), 200)
+            # curve_y_arr = 0
+            # for param in range(len(self.best_param_lst)):
+            #     curve_y_arr += math_tools.lorentzian(curve_x_arr,
+            #                        param[0], param[1], param[2]
+            #                    )
+            #     ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
+            #             linestyle='--')
 
-            curve_x_arr = np.linspace(
-                min(data_arr[:,0]), max(data_arr[:,0]), 200)
-            curve_y_arr = 0
-            for param in range(len(self.best_param_lst)):
-                curve_y_arr += math_tools.lorentzian(curve_x_arr,
-                                   param[0], param[1], param[2]
-                               )
-                ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
-                        linestyle='--')
-
-            ### plot
-            ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
+            # ### plot
+            # ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
 
         ### setting
-        ax.set_xlabel('meV', fontsize=fontsize)
-        ax.set_ylabel('y_unitpk', fontsize=fontsize)
+        ax.set_xlabel('meV')
+        ax.set_ylabel('y_unitpk')
         ax.set_title(self.filename)
