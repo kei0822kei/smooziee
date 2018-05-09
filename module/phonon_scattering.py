@@ -83,11 +83,17 @@ class Process():
         ### condition => stokes anti-stokes
         pair_lst = []
         flag_lst = []
-        for i in range(int(len(self.peak_idx_lst)/2)):
+        for i in range(int(len(self.peak_idx_lst)/2)+1):
             #for j in range(len(peak_idx_lst)-1, i, -1):
             for j in range(len(self.peak_idx_lst)-1, i, -1):
-                if abs(abs(self.data_df.loc[i]['meV'])-abs(self.data_df.loc[j]['meV'])) < threshold \
-                        and i not in flag_lst and j not in flag_lst:
+                print(i, j)
+                print(self.data_df.loc[self.peak_idx_lst[i]]['meV'])
+                print(self.data_df.loc[self.peak_idx_lst[j]]['meV'])
+                print(self.data_df.loc[self.peak_idx_lst[i]]['meV'] + \
+                        self.data_df.loc[self.peak_idx_lst[j]]['meV'])
+                mean = self.data_df.loc[self.peak_idx_lst[i]]['meV'] + \
+                           self.data_df.loc[self.peak_idx_lst[j]]['meV']
+                if abs(mean) < threshold and i not in flag_lst and j not in flag_lst:
                     pair_lst.append([self.peak_idx_lst[i], self.peak_idx_lst[j]])
                     flag_lst.extend([i, j])
 
