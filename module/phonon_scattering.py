@@ -11,9 +11,8 @@ import sys
 import numpy as np
 import pandas as pd
 import scipy.optimize
-import joblib
+import h5py
 from scipy.signal import argrelmax
-sys.path.append("/Users/keiyu/Github")
 from smooziee.module import math_tools
 from sklearn.metrics import mean_squared_error
 
@@ -233,14 +232,37 @@ class Process():
             print("best param was set to self.best_param_lst")
 
 
-    # def saveobj(self, obj, savefile=self.filename):
-    def saveobj(self, obj, savefile):
+    def save(self, savefile=None):
         """
         input         : savefile
-        description   : joblib.dump(self, savefile)
+        description   : save variables
         """
-        joblib.dump(obj, savefile)
+        if savefile == None:
+            savefile = self.filename+'.hdf5'
+        outfh = h5py.File(savefile, 'w')
+        self.peak_idx_lst = None  ### ex) [36, 62, 97]
+        self.peak_pair_idx_lst = None  ### ex) [[36, 97], [...], ...]
+        self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
+        outfh.create_dataset('filename', data = self.filename)
+        outfh.create_dataset('peak_idx_lst', data = self.peak_idx_lst)
+        outfh.create_dataset('peak_pair_idx_lst', data = self.peak_pair_idx_lst)
+        outfh.create_dataset('best_param_lst', data = self.best_param_lst)
+        outfh.flush()
+        outfh.close()
 
+
+    def load(self, loadfile)
+        infh = h5py.File(loadfile, 'r')
+
+        ### check
+        if infh['filename'].value != self.filename:
+            print("file name of this object" % self.filename)
+            print("load file name is %s" % infh['filename'].value)
+
+        self.peak_idx_lst = infh['peak_idx_lst'].value
+        self.peak_pair_idx_lst = infh['peak_pair_idx_lst'].value
+        self.peak_param_lst = infh['best_param_lst'].value
+        infh.close()
 
     def plot(self, ax, run_mode=None):
         """
@@ -294,6 +316,46 @@ class Process():
                                )
             ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
                     linestyle='--')
+
+            for param in self.best_param_lst:
+                curve_y_arr = math_tools.lorentzian(curve_x_arr,
+                                  param[0], param[1], param[2]
+                              )
+                ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
+                        linestyle='--')
+
+
+
+    def revise_best_param(self, revise_lst):
+        """
+        set         : self.best_param_lst
+        input       : revise_lst; list => [peak_idx, param_idx, val]
+                                       or [[peak_idx_1, peak_idx_2], param_idx, val]
+                          param_idx => 0 - A  1 - x0  2 - d
+        description : revise self.best_param_lst
+        """
+        ### check peak pair
+        if type(revise_lst[0]) == int:
+            revise_lst[0] = [revise_lst[0]]
+
+        flag = 0
+        if revise_lst[1] == 2:
+            append_lst = []
+            for arg0_idx in revise_lst[0]:
+                idx = self.peak_idx_lst[arg0_idx]
+                for lst in self.peak_pair_idx_lst:
+                    if idx in lst:
+                        for i in range(2):
+                            append_lst.append(self.peak_idx_lst.index(lst[i]))
+            revise_lst[0].extend(append_lst)
+            revise_lst[0] = list(set(revise_lst[0]))
+
+        param_lst = self.best_param_lst
+        for i in range(len(revise_lst[0])):
+            param_lst[revise_lst[0][i]][revise_lst[1]] = \
+                param_lst[revise_lst[0][i]][revise_lst[1]] + revise_lst[2]
+        self.best_param_lst = param_lst
+
 
 
     def makecsv(self):
