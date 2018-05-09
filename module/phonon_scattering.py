@@ -58,7 +58,6 @@ class Process():
         """
         argrelmax_return_tuple = argrelmax(np.array(self.data_df.loc[:, ['y_unitpk']]), order=order)
         self.peak_idx_lst = list(argrelmax_return_tuple[0])
-        print(self.peak_idx_lst)
         print("found %s peaks" % len(self.peak_idx_lst))
 
 
@@ -112,9 +111,10 @@ class Process():
             print("You have to execute find_peak_pair ahead!")
             sys.exit(1)
 
+        data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
         print("make initial fitting")
         best_param_lst = []
-        for peak_idx in peak_idx_lst:
+        for peak_idx in self.peak_idx_lst:
             param_lst = scipy.optimize.curve_fit(
                 math_tools.lorentzian,
                 data_arr[peak_idx-idx_range:peak_idx+idx_range, 0],
@@ -127,12 +127,14 @@ class Process():
 
         ### stokes anti-stokes revise param d
         for idx_pair_lst in self.peak_pair_idx_lst:
-            mean_d_val = (best_param_lst[idx_pair_lst[0]] +
-                          best_param_lst[idx_pair_lst[1]]) / 2
-            best_param_lst[idx_pair_lst[0]] = mean_d_val
-            best_param_lst[idx_pair_lst[1]] = mean_d_val
+            print(idx_pair_lst)
+            mean_d_val = (best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] +
+                          best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2]) / 2
+            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] = mean_d_val
+            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2] = mean_d_val
 
         self.best_param_lst = best_param_lst
+
 
 
     def make_grid_param(self, param_nw_dic=
@@ -245,7 +247,6 @@ class Process():
         ax.scatter(data_arr[:,0], data_arr[:,1], c='red', s=2)
 
         ### find peak
-        # if self.best_param_lst is None:
         if self.peak_idx_lst is not None:
             if self.peak_pair_idx_lst is None:
                 c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
@@ -261,28 +262,19 @@ class Process():
                        c=c_lst, s=30)
 
 
-            # else:
-            #     ax.scatter(data_arr[self.peak_idx_lst, 0], data_arr[self.peak_idx_lst, 1],
-            #                c='black', s=10)
-
         ### smoothing
-        # else:
-            ### scatter
+        if self.best_param_lst is not None:
+            curve_x_arr = np.linspace(
+                min(data_arr[:,0]), max(data_arr[:,0]), 200)
+            curve_y_arr = 0
+            for param in self.best_param_lst:
+                curve_y_arr += math_tools.lorentzian(curve_x_arr,
+                                   param[0], param[1], param[2]
+                               )
+            ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
+                    linestyle='--')
 
-            # curve_x_arr = np.linspace(
-            #     min(data_arr[:,0]), max(data_arr[:,0]), 200)
-            # curve_y_arr = 0
-            # for param in range(len(self.best_param_lst)):
-            #     curve_y_arr += math_tools.lorentzian(curve_x_arr,
-            #                        param[0], param[1], param[2]
-            #                    )
-            #     ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
-            #             linestyle='--')
-
-            # ### plot
-            # ax.plot(curve_x_arr, curve_y_arr, c='black', linewidth=0.5)
-
-        ### setting
+        ### fig settings
         ax.set_xlabel('meV')
         ax.set_ylabel('y_unitpk')
         ax.set_title(self.filename)
