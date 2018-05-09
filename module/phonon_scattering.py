@@ -39,10 +39,10 @@ class Process():
         self.data_df = data_df
         self.filename = os.path.basename(raw_data)
         self.meV_y_arr = np.array(data_df.loc[:, ['meV', 'y_unitpk']])
-        self.peak_idx_lst = None
-        self.peak_pair_idx_lst = None  ### [[a, b], [c, d]]
+        self.peak_idx_lst = None  ### ex) [36, 62, 97]
+        self.peak_pair_idx_lst = None  ### ex) [[36, 97], [...], ...]
         self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
-        # self.grid_param_lst = None
+        self.grid_param_lst = None
 
 
     def find_peak(self, order=20):
@@ -127,7 +127,6 @@ class Process():
 
         ### stokes anti-stokes revise param d
         for idx_pair_lst in self.peak_pair_idx_lst:
-            print(idx_pair_lst)
             mean_d_val = (best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] +
                           best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2]) / 2
             best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] = mean_d_val
@@ -155,29 +154,41 @@ class Process():
             sys.exit(1)
 
         ### make parameter for grid search
-        for i in range(len(self.peak_idx_lst)):
+        param_info_dic = {}
+        for i, param in enumerate(self.best_param_lst):
             param_info_dic['A_'+str(i)] = \
-              [self.peak_pair_idx_lst[i][0], param_nw_dic['A'][0], param_nw_dic['A'][1]]
+              [param[0], param_nw_dic['A'][0], param_nw_dic['A'][1]]
             param_info_dic['x0_'+str(i)] = \
-              [self.peak_pair_idx_lst[i][1], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
+              [param[1], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
             param_info_dic['d_'+str(i)] = \
-              [self.peak_pair_idx_lst[i][2], param_nw_dic['d'][0], param_nw_dic['d'][1]]
+              [param[2], param_nw_dic['d'][0], param_nw_dic['d'][1]]
         param_lst = math_tools.make_grid_param(param_info_dic)
         print("initial param num is %s" % str(len(param_lst)))
 
         ### stokes anti-stokes revise param d
-        print("if not same d value, remove from param_lst")
-        for param_dic in param_lst:
+        print("if not the same d value between the pairs, remove from param_lst")
+        final_param_idx_lst = []
+        for i, param_dic in enumerate(param_lst):
             param_flag = 0
-            for pair_idx_lst in peak_pair_idx_lst:
-                if param_dic['d_'+str(pair_idx_lst[0])] != \
-                        param_dic['d_'+str(pair_idx_lst[1])]:
+            for pair_idx_lst in self.peak_pair_idx_lst:
+                if param_dic['d_'+str(self.peak_idx_lst.index(pair_idx_lst[0]))] != \
+                       param_dic['d_'+str(self.peak_idx_lst.index(pair_idx_lst[1]))]:
                     param_flag = 1
-            if param_flag == 1:
-                param_lst.remove(param_dic)
-        print("final param num is %s" % str(len(param_lst)))
+            if param_flag == 0:
+                final_param_idx_lst.append(i)
+        print("final param num is %s" % str(len(final_param_idx_lst)))
 
-        self.grid_param_lst = param_lst
+        final_param_lst = []
+        for i in final_param_idx_lst:
+            p_dic = param_lst[i]
+            grid_param_lst = []
+            for j in range(len(self.peak_idx_lst)):
+                grid_param_lst.append([p_dic['A_'+str(j)],
+                                       p_dic['x0_'+str(j)],
+                                       p_dic['d_'+str(j)]])
+            final_param_lst.append(grid_param_lst)
+
+        self.grid_param_lst = final_param_lst
 
 
     def grid_search(self):
@@ -191,34 +202,25 @@ class Process():
             sys.exit(1)
 
         ### grid search
+        data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
         score_lst =[]
-        for param_dic in self.grid_param_lst:
+        for param_lst in self.grid_param_lst:
 
             smooth_y_arr = 0
-            for i in range(len(self.peak_idx_lst)):
-                ### condition => 2d must be more than 1.5 meV
-                #if param_dic['d_'+str(i)] < 0.75:
-                #    param_dic['d_'+str(i)] = 0.75
+            for lorentz_param in param_lst:
 
                 smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
                                    data_arr[:, 0],
-                                   param_dic['A_'+str(i)],
-                                   param_dic['x0_'+str(i)],
-                                   param_dic['d_'+str(i)]
+                                   lorentz_param[0],
+                                   lorentz_param[1],
+                                   lorentz_param[2]
                                )
             score_lst.append(
                 mean_squared_error(data_arr[:,1], smooth_y_arr))
 
         best_score_idx = score_lst.index(min(score_lst))
         print("best score was %s" % str(min(score_lst)))
-        final_param_dic = param_lst[best_score_idx]
-        best_param_lst = []
-        for i in range(len(self.peak_idx_lst)):
-            best_param_lst.append(
-                [final_param_dic['A_'+str(i)], \
-                 final_param_dic['x0_'+str(i)], \
-                 final_param_dic['d_'+str(i)]])
-        self.best_param_lst = best_param_lst
+        self.best_param_lst = self.grid_param_lst[best_score_idx]
         print("best param was set to self.best_param_lst")
 
 
