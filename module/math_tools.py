@@ -20,7 +20,7 @@ def lorentzian(x, A, x0, d):
 # parameter optimize
 ###############################################################################
 
-def make_grid_param(param_info_dic):
+def make_grid_param(param_info_dic, notice=False):
     """
     input       : param_info_dic; dict
                       => param_info_dic = {'param_1':[median, grid_num, width],
@@ -40,6 +40,7 @@ def make_grid_param(param_info_dic):
         each_param_lst = [ min_val+i*width for i in range(grid_num) ]
         dic[key] = each_param_lst
     param_lst = list(ParameterGrid(dic))
-    print("total grid parameter is %s" % len(param_lst))
+    if notice:
+        print("total grid parameter is %s" % len(param_lst))
 
     return param_lst

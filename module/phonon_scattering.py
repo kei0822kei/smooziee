@@ -45,7 +45,7 @@ class Process():
         self.grid_param_lst = None
 
 
-    def find_peak(self, order=20):
+    def find_peak(self, order=20, notice=True):
         """
         input       : data_arr; lst or np.array(1 dimension)
                       order; int => default (order=5)
@@ -58,7 +58,8 @@ class Process():
         """
         argrelmax_return_tuple = argrelmax(np.array(self.data_df.loc[:, ['y_unitpk']]), order=order)
         self.peak_idx_lst = list(argrelmax_return_tuple[0])
-        print("found %s peaks" % len(self.peak_idx_lst))
+        if notice:
+            print("found %s peaks" % len(self.peak_idx_lst))
 
 
     def revise_peak(self, peak_arr):
@@ -70,7 +71,7 @@ class Process():
         self.peak_idx_lst = peak_arr
 
 
-    def find_peak_pair(self, threshold=6):
+    def find_peak_pair(self, threshold=6, notice=True):
         """
         input       : threshold; float or int => threshold=6 (default)
         description : recognize A and B as pair if abs(A) - abs(B) < threshold
@@ -86,11 +87,6 @@ class Process():
         for i in range(int(len(self.peak_idx_lst)/2)+1):
             #for j in range(len(peak_idx_lst)-1, i, -1):
             for j in range(len(self.peak_idx_lst)-1, i, -1):
-                print(i, j)
-                print(self.data_df.loc[self.peak_idx_lst[i]]['meV'])
-                print(self.data_df.loc[self.peak_idx_lst[j]]['meV'])
-                print(self.data_df.loc[self.peak_idx_lst[i]]['meV'] + \
-                        self.data_df.loc[self.peak_idx_lst[j]]['meV'])
                 mean = self.data_df.loc[self.peak_idx_lst[i]]['meV'] + \
                            self.data_df.loc[self.peak_idx_lst[j]]['meV']
                 if abs(mean) < threshold and i not in flag_lst and j not in flag_lst:
@@ -98,10 +94,12 @@ class Process():
                     flag_lst.extend([i, j])
 
         self.peak_pair_idx_lst = pair_lst
-        print("found %s pair" % str(len(self.peak_pair_idx_lst)))
+
+        if notice:
+            print("found %s pair" % str(len(self.peak_pair_idx_lst)))
 
 
-    def initial_fit(self, idx_range=10):
+    def initial_fit(self, idx_range=10, notice=True):
         """
         input       : idx_range; int => idx_range = 10 (default)
                           peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
@@ -118,7 +116,8 @@ class Process():
             sys.exit(1)
 
         data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
-        print("make initial fitting")
+        if notice:
+            print("make initial fitting")
         best_param_lst = []
         for peak_idx in self.peak_idx_lst:
             param_lst = scipy.optimize.curve_fit(
@@ -143,7 +142,7 @@ class Process():
 
 
     def make_grid_param(self, param_nw_dic=
-                            {'A':[3, 0.02], 'x0':[1, 0.5], 'd':[1, 0.02]}):
+                            {'A':[3, 0.02], 'x0':[1, 0.5], 'd':[1, 0.02]}, notice=True):
         """
         input       : idx_range; int => idx_range = 10 (default)
                           peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
@@ -168,11 +167,13 @@ class Process():
               [param[1], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
             param_info_dic['d_'+str(i)] = \
               [param[2], param_nw_dic['d'][0], param_nw_dic['d'][1]]
-        param_lst = math_tools.make_grid_param(param_info_dic)
-        print("initial param num is %s" % str(len(param_lst)))
+        param_lst = math_tools.make_grid_param(param_info_dic, notice=notice)
+        if notice:
+            print("initial param num is %s" % str(len(param_lst)))
 
         ### stokes anti-stokes revise param d
-        print("if not the same d value between the pairs, remove from param_lst")
+        if notice:
+            print("if not the same d value between the pairs, remove from param_lst")
         final_param_idx_lst = []
         for i, param_dic in enumerate(param_lst):
             param_flag = 0
@@ -182,7 +183,8 @@ class Process():
                     param_flag = 1
             if param_flag == 0:
                 final_param_idx_lst.append(i)
-        print("final param num is %s" % str(len(final_param_idx_lst)))
+        if notice:
+            print("final param num is %s" % str(len(final_param_idx_lst)))
 
         final_param_lst = []
         for i in final_param_idx_lst:
@@ -197,7 +199,7 @@ class Process():
         self.grid_param_lst = final_param_lst
 
 
-    def grid_search(self):
+    def grid_search(self, notice=True):
         """
         set         : self.best_param_lst
         description : execute grid search using self.param_lst
@@ -218,16 +220,17 @@ class Process():
                 smooth_y_arr = smooth_y_arr + math_tools.lorentzian( \
                                    data_arr[:, 0],
                                    lorentz_param[0],
-                                   lorentz_param[1],
+                                    lorentz_param[1],
                                    lorentz_param[2]
                                )
             score_lst.append(
                 mean_squared_error(data_arr[:,1], smooth_y_arr))
 
         best_score_idx = score_lst.index(min(score_lst))
-        print("best score was %s" % str(min(score_lst)))
+        print("### best score was %s ###" % str(min(score_lst)))
         self.best_param_lst = self.grid_param_lst[best_score_idx]
-        print("best param was set to self.best_param_lst")
+        if notice:
+            print("best param was set to self.best_param_lst")
 
 
     # def saveobj(self, obj, savefile=self.filename):
@@ -239,9 +242,10 @@ class Process():
         joblib.dump(obj, savefile)
 
 
-    def plot(self, ax):
+    def plot(self, ax, run_mode=None):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
+                        run_mode; str => 'raw_data', 'peak'
                         param_nw_dic; dic => {'A':[grid_num, width], 'x0': ...}
                         run_mode; str => default (run_mode='raw')
                         order; int or float => default (order=5)
@@ -249,9 +253,17 @@ class Process():
         option        : run_mode; 'raw' or 'peak' or 'smooth'
         description   : return ax which is painted data plot and data peak
         """
+        ### fig settings
+        ax.set_xlabel('meV')
+        ax.set_ylabel('y_unitpk')
+        ax.set_title(self.filename)
+
         ### raw data
         data_arr = np.array(self.data_df.loc[:, ['meV', 'y_unitpk']])
         ax.scatter(data_arr[:,0], data_arr[:,1], c='red', s=2)
+
+        if run_mode == 'raw_data':
+            return
 
         ### find peak
         if self.peak_idx_lst is not None:
@@ -268,6 +280,8 @@ class Process():
                        data_arr[self.peak_idx_lst,1],
                        c=c_lst, s=30)
 
+        if run_mode == 'peak':
+            return
 
         ### smoothing
         if self.best_param_lst is not None:
@@ -281,10 +295,6 @@ class Process():
             ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
                     linestyle='--')
 
-        ### fig settings
-        ax.set_xlabel('meV')
-        ax.set_ylabel('y_unitpk')
-        ax.set_title(self.filename)
 
     def makecsv(self):
         ### File ID
