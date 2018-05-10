@@ -77,6 +77,10 @@ class Process():
             plt.show()
 
         elif run_mode == 'add':
+            if idx in self.peak_idx_lst:
+                print("index %s is already in the peak_idx_lst !")
+                return
+
             self.peak_idx_lst.append(idx)
             # if self.best_param_lst != None:
             #     idx_range = 3
@@ -94,13 +98,9 @@ class Process():
 
             self.best_param_lst.append([data_arr[idx,0], data_arr[idx,1], self.best_param_lst[0][2]])
 
-            # arr = np.sort(np.array([self.peak_idx_lst, self.best_param_lst]))
-            # self.peak_idx_lst = list(arr[0])
-            # self.best_param_lst = list(arr[1])
-
-
-
-
+            indexer = np.array(self.peak_idx_lst).argsort()
+            self.peak_idx_lst = list(np.array(self.peak_idx_lst)[indexer])
+            self.best_param_lst = list(map(list ,np.array(self.best_param_lst)[indexer]))
 
 
     def revise_peak(self, peak_arr):
