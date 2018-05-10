@@ -96,11 +96,13 @@ class Process():
             #     else:
             #         self.peak_idx_lst.sort
 
-            self.best_param_lst.append([data_arr[idx,0], data_arr[idx,1], self.best_param_lst[0][2]])
+            if self.best_param_lst != None:
+                self.best_param_lst.append([data_arr[idx,0], data_arr[idx,1], self.best_param_lst[0][2]])
 
             indexer = np.array(self.peak_idx_lst).argsort()
             self.peak_idx_lst = list(np.array(self.peak_idx_lst)[indexer])
-            self.best_param_lst = list(map(list ,np.array(self.best_param_lst)[indexer]))
+            if self.best_param_lst != None:
+                self.best_param_lst = list(map(list ,np.array(self.best_param_lst)[indexer]))
 
 
     def revise_peak(self, peak_arr):
