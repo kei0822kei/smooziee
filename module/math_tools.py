@@ -13,6 +13,12 @@ from sklearn.model_selection import ParameterGrid
 # functions
 ###############################################################################
 
+# def lorentzian(x, p_lst):
+#     A = p_lst[0]
+#     x0 = p_lst[1]
+#     d = p_lst[2]
+#     return A * ( d**2 / ((x-x0)**2 + d**2) )
+
 def lorentzian(x, A, x0, d):
     return A * ( d**2 / ((x-x0)**2 + d**2) )
 
