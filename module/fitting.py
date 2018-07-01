@@ -357,3 +357,34 @@ class Processor():
         self.best_param_lst = self.grid_param_lst[best_score_idx]
         if notice:
             print("best param was set to self.best_param_lst")
+
+
+    def revise_best_param(self, revise_lst):
+        """
+        set         : self.best_param_lst
+        input       : revise_lst; list => [peak_idx, param_idx, val]
+                                       or [[peak_idx_1, peak_idx_2], param_idx, val]
+                          param_idx => 0 - A  1 - x0  2 - d
+        description : revise self.best_param_lst
+        """
+        ### check peak pair
+        if type(revise_lst[0]) == int:
+            revise_lst[0] = [revise_lst[0]]
+
+        if revise_lst[1] == 2:
+            append_lst = []
+            for arg0_idx in revise_lst[0]:
+                idx = self.peak_idx_lst[arg0_idx]
+                for lst in self.peak_pair_idx_lst:
+                    if idx in lst:
+                        for i in range(2):
+                            append_lst.append(self.peak_idx_lst.index(lst[i]))
+            revise_lst[0].extend(append_lst)
+            revise_lst[0] = list(set(revise_lst[0]))
+
+        param_lst = self.best_param_lst
+        for i in range(len(revise_lst[0])):
+            param_lst[revise_lst[0][i]][revise_lst[1]] = \
+                param_lst[revise_lst[0][i]][revise_lst[1]] + revise_lst[2]
+        self.best_param_lst = param_lst
+
