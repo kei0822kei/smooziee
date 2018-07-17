@@ -28,7 +28,7 @@ class Processor():
     deals with phonon scattering experimental data
     """
 
-    def __init__(self, x_arr=None, y_arr=None):
+    def __init__(self, x_arr=None, y_arr=None, name=None):
         """
         input       : x_arr; np.array
                       y_arr; np.array
@@ -37,6 +37,7 @@ class Processor():
         ### set self
         self.x_arr = x_arr
         self.y_arr = y_arr
+        self.name = name
         self.peak_idx_lst = None  ### ex) [36, 62, 97]
         self.peak_pair_idx_lst = None  ### ex) [[36, 97], [...], ...]
         self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
@@ -69,7 +70,9 @@ class Processor():
             ax = fig.add_subplot(111)
             self.plot(ax)
             ax.scatter(self.x_arr[idx], self.y_arr[idx], marker="*", c='blue', s=100)
+            ax.set_title(self.name)
             plt.show()
+            plt.close()
 
         elif run_mode == 'add':
             if idx in self.peak_idx_lst:
@@ -78,6 +81,13 @@ class Processor():
 
             self.peak_idx_lst.append(idx)
             self.peak_idx_lst.sort()
+
+
+    def remove_peak(self, idx):
+        """
+        input       : idx; int => remove peak index
+        """
+        self.peak_idx_lst.remove(idx)
 
 
     def find_peak_pair(self, threshold=6, notice=True):
@@ -107,12 +117,41 @@ class Processor():
             print("found %s pair" % str(len(self.peak_pair_idx_lst)))
 
 
-    def save(self, savefile):
+    def revise_peak_pair(self, peak_pair_lst, run_mode='test'):
+        """
+        input       : run_mode; str => 'test' or 'revise'
+        """
+        if run_mode == 'test':
+            temp_lst = self.peak_pair_idx_lst
+            self.peak_pair_idx_lst = peak_pair_lst
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            self.plot(ax)
+            plt.title(self.name)
+            plt.show()
+            plt.close()
+
+        elif run_mode == 'revise':
+            self.peak_pair_idx_lst = peak_pair_lst
+
+        else:
+            print("run_mode must be 'test' or 'revise'")
+            sys.exit(1)
+
+
+    def save(self, savefile=None):
         """
         input         : savefile
         description   : save variables
         """
-        outfh = h5py.File(savefile, 'w')
+        if savefile == None:
+            if name == None:
+                print("Please set savefile name.")
+                sys.exit(1)
+            else:
+                savefile = name
+
+        outfh = h5py.File(savefile+'.hdf5', 'w')
         outfh.create_dataset('x_arr', data = self.x_arr)
         outfh.create_dataset('y_arr', data = self.y_arr)
         outfh.create_dataset('peak_idx_lst', data = self.peak_idx_lst)
@@ -120,6 +159,11 @@ class Processor():
         outfh.create_dataset('best_param_lst', data = self.best_param_lst)
         outfh.flush()
         outfh.close()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        self.plot(ax)
+        plt.savefig(self.name+'.png')
 
 
     def load(self, loadfile):
@@ -132,6 +176,7 @@ class Processor():
         self.best_param_lst = list(map(list, infh['best_param_lst'].value))
         infh.close()
 
+
     def plot(self, ax, run_mode=None):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
@@ -139,6 +184,7 @@ class Processor():
         """
         ### raw data
         ax.scatter(self.x_arr, self.y_arr, c='red', s=2)
+        ax.set_title(self.name)
 
         if run_mode == 'raw_data':
             return
@@ -149,7 +195,7 @@ class Processor():
                 c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
             else:
                 c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
-                color_lst = ['green', 'yellow', 'pink']
+                color_lst = ['green', 'yellow', 'pink', 'purple']
                 for i in range(len(self.peak_pair_idx_lst)):
                     for j in self.peak_pair_idx_lst[i]:
                         c_lst[self.peak_idx_lst.index(j)] = color_lst[i]
@@ -195,34 +241,47 @@ class Processor():
                 y += smooziee_func.lorentzian(y, param_lst)
 
             self.best_param_lst = list(map(list, np.reshape(np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            self.plot(ax)
 
             return error
 
         self.function = fitting_function
 
 
-    def fit(self):
-        if self.best_param_lst == None:
-            # param_arr = np.random.rand(len(self.peak_idx_lst) * 3)
-            # param_arr = np.random.rand([ 1 for _ in range(len(self.peak_idx_lst) * 3)])
-            param_arr = np.array([1] * 15)
+    def fit(self, iteration=5, log=False):
+        for num in range(iteration):
+            print("iteration number: %s" % str(num+1))
+            if self.best_param_lst == None:
+                param_arr = np.array([1] * 15)
 
-            for i in range(int(len(self.peak_idx_lst))):
-                param_arr[3*i+1] = self.x_arr[self.peak_idx_lst[i]]
-            init_param_lst = list(param_arr)
+                for i in range(int(len(self.peak_idx_lst))):
+                    param_arr[3*i+1] = self.x_arr[self.peak_idx_lst[i]]
+                init_param_lst = list(param_arr)
 
-        else:
-            init_param_lst = list(np.array(self.best_param_lst).flatten())
+            else:
+                init_param_lst = list(np.array(self.best_param_lst).flatten())
 
-        [xopt, fopt, itera, funcalls, warnflag, allvecs] \
-            = fmin(self.function,init_param_lst, retall=True, full_output=True)
+            xopt, fopt, iteration, funcalls, warnflag, allvecs \
+                = fmin(self.function, init_param_lst, retall=True, full_output=True)
 
+            log_dic = {'xopt':xopt,
+                    'fopt':fopt,
+                    'iteration':iteration,
+                    'funcalls':funcalls,
+                    'warnflag':warnflag,
+                    'allvecs':allvecs}
 
-        all_param_lst = list(map(list, np.reshape(np.array(xopt), (int(len(xopt)/3), 3))))
-        self.best_param_lst = all_param_lst
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            self.plot(ax)
+            plt.title(self.name)
+            plt.show()
+            plt.close()
+
+            all_param_lst = list(map(list, np.reshape(np.array(xopt), (int(len(xopt)/3), 3))))
+            self.best_param_lst = all_param_lst
+
+        if log:
+            return log_dic
 
 
     def initial_fit(self, idx_range=5, notice=True):
@@ -271,94 +330,6 @@ class Processor():
         self.best_param_lst = best_param_lst
 
 
-
-    def make_grid_param(self, param_nw_dic=
-                            {'A':[3, 0.02], 'x0':[1, 0.5], 'd':[1, 0.02]}, notice=True):
-        """
-        input       : idx_range; int => idx_range = 10 (default)
-                          peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
-                          if idx_range = 10
-        set         : self.grid_param_lst
-        description : make initial fit using self.peak_idx_lst
-        """
-        ### check
-        if self.peak_idx_lst == None:
-            print("You have to execute find_peak ahead!")
-            sys.exit(1)
-        if self.peak_pair_idx_lst == None:
-            print("You have to execute find_peak_pair ahead!")
-            sys.exit(1)
-
-        ### make parameter for grid search
-        param_info_dic = {}
-        for i, param in enumerate(self.best_param_lst):
-            param_info_dic['A_'+str(i)] = \
-              [param[0], param_nw_dic['A'][0], param_nw_dic['A'][1]]
-            param_info_dic['x0_'+str(i)] = \
-              [param[1], param_nw_dic['x0'][0], param_nw_dic['x0'][1]]
-            param_info_dic['d_'+str(i)] = \
-              [param[2], param_nw_dic['d'][0], param_nw_dic['d'][1]]
-        param_lst = math_tools.make_grid_param(param_info_dic, notice=notice)
-        if notice:
-            print("initial param num is %s" % str(len(param_lst)))
-
-        ### stokes anti-stokes revise param d
-        if notice:
-            print("if not the same d value between the pairs, remove from param_lst")
-        final_param_idx_lst = []
-        for i, param_dic in enumerate(param_lst):
-            param_flag = 0
-            for pair_idx_lst in self.peak_pair_idx_lst:
-                if param_dic['d_'+str(self.peak_idx_lst.index(pair_idx_lst[0]))] != \
-                       param_dic['d_'+str(self.peak_idx_lst.index(pair_idx_lst[1]))]:
-                    param_flag = 1
-            if param_flag == 0:
-                final_param_idx_lst.append(i)
-        if notice:
-            print("final param num is %s" % str(len(final_param_idx_lst)))
-
-        final_param_lst = []
-        for i in final_param_idx_lst:
-            p_dic = param_lst[i]
-            grid_param_lst = []
-            for j in range(len(self.peak_idx_lst)):
-                grid_param_lst.append([p_dic['A_'+str(j)],
-                                       p_dic['x0_'+str(j)],
-                                       p_dic['d_'+str(j)]])
-            final_param_lst.append(grid_param_lst)
-
-        self.grid_param_lst = final_param_lst
-
-
-    def grid_search(self, notice=True):
-        """
-        set         : self.best_param_lst
-        description : execute grid search using self.param_lst
-        """
-        ### check
-        if self.grid_param_lst == None:
-            print("You have to execute make_grid_param ahead!")
-            sys.exit(1)
-
-        ### grid search
-        score_lst =[]
-        for param_lst in self.grid_param_lst:
-
-            smooth_y_arr = 0
-            for lorentz_param in param_lst:
-
-                smooth_y_arr = smooth_y_arr + smooziee_func.lorentzian( \
-                                   self.x_arr, lorentz_param)
-            score_lst.append(
-                mean_squared_error(self.y_arr, smooth_y_arr))
-
-        best_score_idx = score_lst.index(min(score_lst))
-        print("### best score was %s ###" % str(min(score_lst)))
-        self.best_param_lst = self.grid_param_lst[best_score_idx]
-        if notice:
-            print("best param was set to self.best_param_lst")
-
-
     def revise_best_param(self, revise_lst):
         """
         set         : self.best_param_lst
@@ -387,4 +358,3 @@ class Processor():
             param_lst[revise_lst[0][i]][revise_lst[1]] = \
                 param_lst[revise_lst[0][i]][revise_lst[1]] + revise_lst[2]
         self.best_param_lst = param_lst
-
