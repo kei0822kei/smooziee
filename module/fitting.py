@@ -41,7 +41,10 @@ class Processor():
         self.peak_idx_lst = None  ### ex) [36, 62, 97]
         self.peak_pair_idx_lst = None  ### ex) [[36, 97], [...], ...]
         self.best_param_lst = None  ### [[initA_0, initx0_0, initd_0], ...]
+        self.revised_best_param_lst = None
+        self.center_move = None
         self.function = None
+        self.center_peak = None  ### ex) 62 or [36, 97]
 
 
     def find_peak(self, order, notice=True):
@@ -69,7 +72,8 @@ class Processor():
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
-            ax.scatter(self.x_arr[idx], self.y_arr[idx], marker="*", c='blue', s=100)
+            ax.scatter(self.x_arr[idx], self.y_arr[idx],
+                       marker="*", c='blue', s=100)
             ax.set_title(self.name)
             plt.show()
             plt.close()
@@ -106,9 +110,12 @@ class Processor():
         for i in range(int(len(self.peak_idx_lst)/2)+1):
             #for j in range(len(peak_idx_lst)-1, i, -1):
             for j in range(len(self.peak_idx_lst)-1, i, -1):
-                mean = self.x_arr[self.peak_idx_lst[i]] + self.x_arr[self.peak_idx_lst[j]]
-                if abs(mean) < threshold and i not in flag_lst and j not in flag_lst:
-                    pair_lst.append([self.peak_idx_lst[i], self.peak_idx_lst[j]])
+                mean = self.x_arr[self.peak_idx_lst[i]] + \
+                         self.x_arr[self.peak_idx_lst[j]]
+                if abs(mean) < threshold \
+                        and i not in flag_lst and j not in flag_lst:
+                    pair_lst.append(
+                      [self.peak_idx_lst[i], self.peak_idx_lst[j]])
                     flag_lst.extend([i, j])
 
         self.peak_pair_idx_lst = pair_lst
@@ -155,8 +162,13 @@ class Processor():
         outfh.create_dataset('x_arr', data = self.x_arr)
         outfh.create_dataset('y_arr', data = self.y_arr)
         outfh.create_dataset('peak_idx_lst', data = self.peak_idx_lst)
-        outfh.create_dataset('peak_pair_idx_lst', data = self.peak_pair_idx_lst)
+        outfh.create_dataset('peak_pair_idx_lst',
+                               data = self.peak_pair_idx_lst)
         outfh.create_dataset('best_param_lst', data = self.best_param_lst)
+        outfh.create_dataset('revised_best_param_lst',
+                               data = self.revised_best_param_lst)
+        outfh.create_dataset('center_move', data = self.center_move)
+        outfh.create_dataset('center_peak', data = self.center_peak)
         outfh.flush()
         outfh.close()
 
@@ -172,8 +184,17 @@ class Processor():
         self.x_arr = np.array(list(infh['x_arr'].value))
         self.y_arr = np.array(list(infh['y_arr'].value))
         self.peak_idx_lst = list(infh['peak_idx_lst'].value)
-        self.peak_pair_idx_lst = list(map(list, infh['peak_pair_idx_lst'].value))
-        self.best_param_lst = list(map(list, infh['best_param_lst'].value))
+        self.peak_pair_idx_lst = \
+            list(map(list, infh['peak_pair_idx_lst'].value))
+        self.best_param_lst = \
+            list(map(list, infh['best_param_lst'].value))
+        self.revised_best_param_lst = \
+            list(map(list, infh['revised_best_param_lst'].value))
+        self.center_move = int(infh['center_move'].value)
+        try:
+            self.center_peak = int(infh['center_peak'].value)
+        except:
+            self.center_peak = list(infh['center_peak'].value)
         infh.close()
 
 
@@ -225,11 +246,29 @@ class Processor():
                 ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
                         linestyle='--')
 
+        ### set center
+        if self.revised_best_param_lst is not None:
+            r_curve_y_arr = 0
+            for param in self.revised_best_param_lst:
+                r_curve_y_arr += smooziee_func.lorentzian(curve_x_arr,
+                                   [param[0], param[1], param[2]]
+                               )
+            ax.plot(curve_x_arr, r_curve_y_arr, c='orange', linewidth=1.,
+                    linestyle='--')
+
+            for param in self.best_param_lst:
+                r_curve_y_arr = smooziee_func.lorentzian(curve_x_arr,
+                                  [param[0], param[1], param[2]])
+                ax.plot(curve_x_arr, r_curve_y_arr, c='orange', linewidth=0.3,
+                        linestyle='--')
+
+
 
     def set_function(self):
 
         def fitting_function(input_param_lst):
-            all_param_lst = list(map(list, np.reshape(np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
+            all_param_lst = list(map(list, np.reshape(
+                np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
             y_fit_arr = 0
             for param_lst in all_param_lst:
                 y_fit_arr += smooziee_func.lorentzian(self.x_arr, param_lst)
@@ -240,7 +279,8 @@ class Processor():
             for param_lst in all_param_lst:
                 y += smooziee_func.lorentzian(y, param_lst)
 
-            self.best_param_lst = list(map(list, np.reshape(np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
+            self.best_param_lst = list(map(list, np.reshape(
+                np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
 
             return error
 
@@ -261,7 +301,8 @@ class Processor():
                 init_param_lst = list(np.array(self.best_param_lst).flatten())
 
             xopt, fopt, iteration, funcalls, warnflag, allvecs \
-                = fmin(self.function, init_param_lst, retall=True, full_output=True)
+                = fmin(self.function, init_param_lst,
+                       retall=True, full_output=True)
 
             log_dic = {'xopt':xopt,
                     'fopt':fopt,
@@ -277,7 +318,8 @@ class Processor():
             plt.show()
             plt.close()
 
-            all_param_lst = list(map(list, np.reshape(np.array(xopt), (int(len(xopt)/3), 3))))
+            all_param_lst = list(map(list, np.reshape(
+                np.array(xopt), (int(len(xopt)/3), 3))))
             self.best_param_lst = all_param_lst
 
         if log:
@@ -322,10 +364,13 @@ class Processor():
 
         ### stokes anti-stokes revise param d
         for idx_pair_lst in self.peak_pair_idx_lst:
-            mean_d_val = (best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] +
-                          best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2]) / 2
-            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] = mean_d_val
-            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2] = mean_d_val
+            mean_d_val = \
+              (best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] +
+               best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2]) / 2
+            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] \
+                = mean_d_val
+            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2] \
+                = mean_d_val
 
         self.best_param_lst = best_param_lst
 
@@ -333,8 +378,9 @@ class Processor():
     def revise_best_param(self, revise_lst):
         """
         set         : self.best_param_lst
-        input       : revise_lst; list => [peak_idx, param_idx, val]
-                                       or [[peak_idx_1, peak_idx_2], param_idx, val]
+        input       : revise_lst; list
+                        =>    [peak_idx, param_idx, val]
+                           or [[peak_idx_1, peak_idx_2], param_idx, val]
                           param_idx => 0 - A  1 - x0  2 - d
         description : revise self.best_param_lst
         """
@@ -358,3 +404,38 @@ class Processor():
             param_lst[revise_lst[0][i]][revise_lst[1]] = \
                 param_lst[revise_lst[0][i]][revise_lst[1]] + revise_lst[2]
         self.best_param_lst = param_lst
+
+
+    def set_center(self, peak_idx):
+        """
+        set         : self.center_peak
+                      self.center_move
+        input       : peak_idx; int => peak index used centering
+        description : if peak_idx is one of the peak of pair peak,
+                      the mean of the peaks is used
+        """
+        center_peak = int(self.peak_idx_lst[peak_idx])
+        for peak_pair_lst in self.peak_pair_idx_lst:
+            if self.peak_idx_lst[peak_idx] in peak_pair_lst:
+                center_peak = peak_pair_lst
+                break
+        self.center_peak = center_peak
+        print("set center peak: %s" % str(self.center_peak))
+
+        if type(self.center_peak) == int:
+            idx = self.peak_idx_lst.index(self.center_peak)
+            self.center_move = -self.best_param_lst[idx][1]
+        else:
+            x0_lst = []
+            for peak in self.center_peak:
+                idx = self.peak_idx_lst.index(peak)
+                x0_lst.append(self.best_param_lst[idx][1])
+            self.center_move = -np.mean(np.array(x0_lst))
+        print("lorentzians were moved: %s" % str(self.center_move))
+
+        revised_best_param_lst = []
+        for lst in self.best_param_lst:
+            revised_best_param_lst.append(
+              [lst[0], lst[1]+self.center_move, lst[2]])
+        self.revised_best_param_lst = revised_best_param_lst
+        print("revised_best_param_lst were set")
