@@ -165,17 +165,20 @@ class Processor():
         outfh.create_dataset('peak_pair_idx_lst',
                                data = self.peak_pair_idx_lst)
         outfh.create_dataset('best_param_lst', data = self.best_param_lst)
-        outfh.create_dataset('revised_best_param_lst',
-                               data = self.revised_best_param_lst)
-        outfh.create_dataset('center_move', data = self.center_move)
-        outfh.create_dataset('center_peak', data = self.center_peak)
+        try:
+            outfh.create_dataset('revised_best_param_lst',
+                                   data = self.revised_best_param_lst)
+            outfh.create_dataset('center_move', data = self.center_move)
+            outfh.create_dataset('center_peak', data = self.center_peak)
+        except:
+            pass
         outfh.flush()
         outfh.close()
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        self.plot(ax)
-        plt.savefig(self.name+'.png')
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111)
+        # self.plot(ax)
+        # plt.savefig(self.name+'.png')
 
 
     def load(self, loadfile):
@@ -188,13 +191,16 @@ class Processor():
             list(map(list, infh['peak_pair_idx_lst'].value))
         self.best_param_lst = \
             list(map(list, infh['best_param_lst'].value))
-        self.revised_best_param_lst = \
-            list(map(list, infh['revised_best_param_lst'].value))
-        self.center_move = int(infh['center_move'].value)
         try:
-            self.center_peak = int(infh['center_peak'].value)
+            self.revised_best_param_lst = \
+                list(map(list, infh['revised_best_param_lst'].value))
+            self.center_move = int(infh['center_move'].value)
+            try:
+                self.center_peak = int(infh['center_peak'].value)
+            except:
+                self.center_peak = list(infh['center_peak'].value)
         except:
-            self.center_peak = list(infh['center_peak'].value)
+            pass
         infh.close()
 
 
@@ -264,7 +270,7 @@ class Processor():
 
 
 
-    def set_function(self):
+    def set_function(self, x0_constant=False):
 
         def fitting_function(input_param_lst):
             all_param_lst = list(map(list, np.reshape(
@@ -274,17 +280,38 @@ class Processor():
                 y_fit_arr += smooziee_func.lorentzian(self.x_arr, param_lst)
             error = np.sqrt(mean_squared_error(self.y_arr, y_fit_arr))
 
-            x = np.linspace(min(self.x_arr), max(self.x_arr), 200)
-            y = 0
-            for param_lst in all_param_lst:
-                y += smooziee_func.lorentzian(y, param_lst)
+            #x = np.linspace(min(self.x_arr), max(self.x_arr), 200)
+            #y = 0
+            #for param_lst in all_param_lst:
+            #    y += smooziee_func.lorentzian(y, param_lst)
 
-            self.best_param_lst = list(map(list, np.reshape(
-                np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
+            #self.best_param_lst = list(map(list, np.reshape(
+            #    np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
 
             return error
 
-        self.function = fitting_function
+        def fitting_function_except_x0(input_param_lst, x0_lst):
+            all_param_lst = list(map(list, np.reshape(
+                np.array(input_param_lst), (int(len(input_param_lst)/2), 2))))
+            y_fit_arr = 0
+            for i, param_lst in enumerate(all_param_lst):
+                y_fit_arr += smooziee_func.lorentzian(self.x_arr, [param_lst[0], x0_lst[i], param_lst[1]])
+            error = np.sqrt(mean_squared_error(self.y_arr, y_fit_arr))
+
+            #x = np.linspace(min(self.x_arr), max(self.x_arr), 200)
+            #y = 0
+            #for param_lst in all_param_lst:
+            #    y += smooziee_func.lorentzian(y, param_lst)
+
+            #self.best_param_lst = list(map(list, np.reshape(
+            #    np.array(input_param_lst), (int(len(input_param_lst)/3), 3))))
+
+            return error
+
+        if x0_constant:
+            self.function = fitting_function_except_x0
+        else:
+            self.function = fitting_function
 
 
     def fit(self, iteration=5, log=False):
@@ -300,9 +327,20 @@ class Processor():
             else:
                 init_param_lst = list(np.array(self.best_param_lst).flatten())
 
-            xopt, fopt, iteration, funcalls, warnflag, allvecs \
-                = fmin(self.function, init_param_lst,
-                       retall=True, full_output=True)
+            if 'except_x0' in self.function.__name__:
+                init_param_arr = np.reshape(np.array(init_param_lst), (int(len(init_param_lst)/3), 3))
+                val_lst = list(map(list, np.array(init_param_arr)[:,[0,2]]))
+                const_lst = list(np.array(init_param_arr)[:,1])
+                xopt, fopt, iteration, funcalls, warnflag, allvecs \
+                    = fmin(self.function, val_lst, args=(const_lst,),
+                           retall=True, full_output=True)
+                p_arr = np.reshape(np.array(xopt), (int(len(xopt)/2), 2))
+                all_param_lst = list(map(list, np.array([p_arr[:,0], const_lst, p_arr[:,1]]).T))
+            else:
+                xopt, fopt, iteration, funcalls, warnflag, allvecs \
+                    = fmin(self.function, init_param_lst,
+                           retall=True, full_output=True)
+                all_param_lst = list(map(list, np.reshape(np.array(xopt), (int(len(xopt)/3), 3))))
 
             log_dic = {'xopt':xopt,
                     'fopt':fopt,
@@ -318,8 +356,6 @@ class Processor():
             plt.show()
             plt.close()
 
-            all_param_lst = list(map(list, np.reshape(
-                np.array(xopt), (int(len(xopt)/3), 3))))
             self.best_param_lst = all_param_lst
 
         if log:
