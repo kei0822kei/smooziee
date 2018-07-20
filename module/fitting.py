@@ -5,10 +5,9 @@
 # fitting 2d data
 ###############################################################################
 
-# import modules
+import numpy as np
 import sys
 from scipy.signal import argrelmax
-from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from smooziee.module import function as smooziee_func
 import lmfit
@@ -278,10 +277,10 @@ class Processor(lmfit.Parameters):
             print("make initial fitting")
 
         for peak_idx in self.peak_idx_lst:
+            i = None
             self.func_info_lst[i]['params']['A'] = self.y_arr[peak_idx]
             self.func_info_lst[i]['params']['mu'] = self.x_arr[peak_idx]
             self.func_info_lst[i]['params']['sigma'] = 1
-
 
     # def initial_fit(self, idx_range=5, notice=True):
     #     """
@@ -412,8 +411,8 @@ class Processor(lmfit.Parameters):
             curve_y_arr = 0
             for func_info_dic in self.func_info_lst:
                 params = func_info_dic['params']
-                curve_y_arr += smooziee_func.lorentzian(curve_x_arr,
-                                   [params['A'], params['mu'], params['sigma']])
+                curve_y_arr += smooziee_func.lorentzian(
+                    curve_x_arr, [params['A'], params['mu'], params['sigma']])
             ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
                     linestyle='--')
 
