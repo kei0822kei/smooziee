@@ -54,7 +54,6 @@ class Processor(lmfit.Parameters):
         self.center_move = None
         self.function = None
         self.center_peak = None  # ex) 62 or [36, 97]
-        self.function_name_lst = None
         self.func_info_lst = None
         self.fixed_param_lst = None
 
@@ -69,8 +68,8 @@ class Processor(lmfit.Parameters):
                       see more about 'scipy.signal.argrelmax'
                       http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
-        argrelmax_return_tuple = argrelmax(self.y_arr, order=order)
-        self.peak_idx_lst = list(argrelmax_return_tuple[0])
+        extrema, _ = argrelmax(self.y_arr, order=order)
+        self.peak_idx_lst = list(extrema)  # TODO Why not np.ndarray
         if notice:
             print("found %s peaks" % len(self.peak_idx_lst))
 
@@ -90,8 +89,7 @@ class Processor(lmfit.Parameters):
 
         elif run_mode == 'add':
             if idx in self.peak_idx_lst:
-                print("index %s is already in the peak_idx_lst !")
-                return
+                raise ValueError("index %s is already in the peak_idx_lst !")
 
             self.peak_idx_lst.append(idx)
             self.peak_idx_lst.sort()
@@ -101,7 +99,7 @@ class Processor(lmfit.Parameters):
         input       : idx; int => remove peak index
         """
         self.peak_idx_lst.remove(idx)
-        self.best_param_lst = None
+        self.best_param_lst = None  # FIXME what are these variables?
         self.revised_best_param_lst = None
         self.center_move = None
         self.function = None
@@ -115,8 +113,7 @@ class Processor(lmfit.Parameters):
         set         : self.peak_pair_idx_lst
         """
         if self.peak_idx_lst is None:
-            print("You have to execute find_peak ahead !")
-            sys.exit(1)
+            raise ValueError("You have to execute find_peak ahead !")
 
         # condition => stokes anti-stokes
         pair_lst = []
@@ -124,8 +121,8 @@ class Processor(lmfit.Parameters):
         for i in range(int(len(self.peak_idx_lst)/2)+1):
             # for j in range(len(peak_idx_lst)-1, i, -1):
             for j in range(len(self.peak_idx_lst)-1, i, -1):
-                mean = self.x_arr[self.peak_idx_lst[i]] + \
-                         self.x_arr[self.peak_idx_lst[j]]
+                mean = (self.x_arr[self.peak_idx_lst[i]]
+                        + self.x_arr[self.peak_idx_lst[j]])
                 if abs(mean) < threshold \
                         and i not in flag_lst and j not in flag_lst:
                     pair_lst.append(
@@ -154,31 +151,34 @@ class Processor(lmfit.Parameters):
             self.peak_pair_idx_lst = peak_pair_lst
 
         else:
-            print("run_mode must be 'test' or 'revise'")
-            sys.exit(1)
+            raise ValueError("run_mode must be 'test' or 'revise'")
 
     def set_function_info(self, func_name_lst):
         """
         set the type of function
         ex)["gaussian", "lorentzian"]
         """
-        self.function_name_lst = func_name_lst
-        if len(func_name_lst) != len(self.peak_idx_lst):
-            print("The number of peaks and functions must be the same")
-            sys.exit(1)
+        def default_params(name):
+            if name in ['amplitude', 'sigma']:
+                min_ = epsilon
+            else:
+                min_ = None
 
-        func_info_lst = []
-        for func in self.function_name_lst:
+            return {'name': name, 'value': None, 'vary': True,
+                    'min': min_, 'max': None}
+
+        if len(func_name_lst) != len(self.peak_idx_lst):
+            raise ValueError("The number of peaks and functions"
+                             "must be the same")
+
+        func_info_lst = []  # FIXME revise this option
+        for func in func_name_lst:
             if func == "lorentzian":
-                each_info = {"function": func,
-                             "params": {'amplitude': None, 'center': None,
-                                        'sigma': None},
-                             "optimize": {'amplitude': True, 'center': True,
-                                          'sigma': True},
-                             "boundary": {'amplitude': [epsilon, None],
-                                          'center': [None, None],
-                                          'sigma': [epsilon, None]}}
-            func_info_lst.append(each_info)
+                params_toadd = [default_params['amplitude'],
+                                default_params['center'],
+                                default_params['sigma']]
+
+            func_info_lst.append(params_toadd)
 
         self.func_info_lst = func_info_lst
 
@@ -188,7 +188,7 @@ class Processor(lmfit.Parameters):
         peak_idx_lst is index of peaks to fix ex)[2, 9]
         both arguments must be list   ex)['amplitude', 'center']#
         """
-        fixed_param_lst = self.func_info_lst
+        fixed_param_lst = self.func_info_lst  # FIXME will be the same list
         for each_idx in peak_fix_idx_lst:
             for each_var in var_lst:
                 fixed_param_lst[each_idx]["optimize"][each_var] = False
@@ -199,8 +199,9 @@ class Processor(lmfit.Parameters):
         set parameters for minimization
         """
         # use lmfit.Parameters
-        def common_params(param):
-            return {'value': func_info_dic['param'][param],
+        def common_params(param, i):
+            return {'name': param + '_' + str(i),
+                    'value': func_info_dic['param'][param],
                     'vary': func_info_dic['optimize'][param],
                     'min': func_info_dic['boundary'][param][0],
                     'max': func_info_dic['boundary'][param][1]}
@@ -214,15 +215,12 @@ class Processor(lmfit.Parameters):
 
             if func_info_dic['function'] == 'lorentzian':
                 for param in ['amplitude', 'center']:
-                    self.lmfit_params.add(param + '_' + str(i),
-                                          **common_params(param))
+                    self.lmfit_params.add(**common_params(param, i))
                 if same_idx is None:
-                    self.lmfit_params.add('sigma_' + str(i),
-                                          **common_params('sigma'))
+                    self.lmfit_params.add(**common_params('sigma', i))
                 else:
-                    self.lmfit_params.add('sigma_' + str(i),
-                                          **common_params('sigma'),
-                                          expr='sigma_' + str(same_idx))
+                    self.lmfit_params.add(**common_params('sigma', i),
+                                          expr='sigma_'+str(same_idx))
             else:
                 print("function name %s is not understood"
                       % func_info_dic['function'])
