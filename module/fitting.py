@@ -23,6 +23,8 @@ import lmfit
 # phonon scattering
 ###############################################################################
 
+epsilon = 1e-8
+
 class Processor(lmfit.Parameters):
     """
     deals with phonon scattering experimental data
@@ -50,6 +52,7 @@ class Processor(lmfit.Parameters):
         self.center_peak = None  ### ex) 62 or [36, 97]
         self.function_name_lst = None
         self.func_info_lst = None
+        self.fixed_param_lst = None
 
 
     def find_peak(self, order, notice=True):
@@ -171,11 +174,29 @@ class Processor(lmfit.Parameters):
         for func in self.function_name_lst:
             if func == "lorentzian":
                 each_info = {"function" : func,
-                            "params" : {"A" : None, "myu" : None, "sigma" : None},
-                            "optimize" : {"A" : True, "myu" : True, "sigma" : None}}
+                            "params" : {"A" : None, "myu" : None,
+                                        "sigma" : None},
+                            "optimize" : {"A" : True, "myu" : True,
+                                          "sigma" : True},
+                             "boundary" : {"A" : [epsilon, None],
+                                           "myu" : [None, None],
+                                           "sigma" : [epsilon, None]}}
             func_info_lst.append(each_info)
 
         self.func_info_lst = func_info_lst
+
+
+    def set_fix_params(self, peak_fix_idx_lst, var_lst):
+        """
+        fix variables
+        peak_idx_lst is index of peaks to fix ex)[2, 9]
+        both arguments must be list   ex)["A", "myu"]#
+        """
+        fixed_param_lst = self.func_info_lst
+        for each_idx in peak_fix_idx_lst:
+            for each_var in var_lst:
+                fixed_param_lst[each_idx]["optimize"][each_var] = False
+        self.fixed_param_lst = fixed_param_lst
 
 
     def set_params_for_minimize(self):
