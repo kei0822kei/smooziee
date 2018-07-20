@@ -234,6 +234,18 @@ class Processor(lmfit.Parameters):
         """
         set parameters for minimization
         """
+        def model_params(func):
+            if func == 'lorentzian':
+                return "A", "myu", "sigma"
+            elif func == 'gaussian':
+                return "mu", "sigma"
+
+        def model(params):
+            model = None
+            for i in range(len(self.peak_idx_lst)):
+                pass
+
+
         # def function_for_optimization(params, self.x_arr, self.y_arr):
         #     for i in range(len(self.peak_idx_lst)):
         #         if self.func_info_lst['function'] == 'lorentzian':
