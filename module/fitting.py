@@ -48,6 +48,7 @@ class Processor(lmfit.Parameters):
         self.center_move = None
         self.function = None
         self.center_peak = None  ### ex) 62 or [36, 97]
+        self.function_name_lst = None
 
 
     def find_peak(self, order, notice=True):
@@ -153,6 +154,17 @@ class Processor(lmfit.Parameters):
         else:
             print("run_mode must be 'test' or 'revise'")
             sys.exit(1)
+
+
+    def set_function_name(self, func_name_lst):
+        """
+        set the type of function
+        ex)["gaussian", "lonentz"]
+        """
+        self.function_name_lst = func_name_lst
+
+
+
 
 
     # def save(self, savefile=None):
