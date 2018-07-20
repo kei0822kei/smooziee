@@ -49,6 +49,7 @@ class Processor(lmfit.Parameters):
         self.function = None
         self.center_peak = None  ### ex) 62 or [36, 97]
         self.function_name_lst = None
+        self.func_info_lst = None
 
 
     def find_peak(self, order, notice=True):
@@ -156,12 +157,28 @@ class Processor(lmfit.Parameters):
             sys.exit(1)
 
 
-    def set_function_name(self, func_name_lst):
+    def set_function_info(self, func_name_lst):
         """
         set the type of function
-        ex)["gaussian", "lonentz"]
+        ex)["Gaussian", "Lonentz"]
         """
         self.function_name_lst = func_name_lst
+        if len(func_name_lst) != len(self.peak_idx_lst):
+            print("The number of peaks and functions must be the same")
+            sys.exit(1)
+        
+
+        func_info_lst = []
+        for func in self.function_name_lst:
+            if func == "lorentzian":
+                each_info = {"function" : func, 
+                            "params" : {"A" : None, "myu" : None, "sigma" : None},
+                            "optimize" : {"A" : True, "myu" : True, "sigma" : None}}
+            func_info_lst.append(each_info)
+
+        self.func_info_lst = func_info_lst
+
+
 
 
 
