@@ -178,7 +178,64 @@ class Processor(lmfit.Parameters):
         self.func_info_lst = func_info_lst
 
 
+    def set_params_for_minimize(self):
+        """
+        set parameters for minimization
+        """
+        ### use lmfit.Parameters
+        for i, func_info_dic in enumerate(self.func_info_lst):
+            if func_info_dic['function'] == 'lorentzian':
+                self.add('A_'+str(i), value=func_info_dic['param']['A'])
+                self.add('myu_'+str(i), value=func_info_dic['param']['myu'])
+                self.add('sigma_'+str(i), value=func_info_dic['param']['sigma'])
+            else:
+                print("function name %s is not understood" % func_info_dic['function'])
+                sys.exit(1)
+            print("%s parameters were set" % str(len(self.keys())))
 
+
+    def set_function_for_minimize(self):
+        """
+        set parameters for minimization
+        """
+
+
+
+    def initial_fit(self, idx_range=5, notice=True):
+        """
+        input       : idx_range; int => idx_range = 10 (default)
+                          peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
+                          if idx_range = 10
+        set         : self.best_param_lst
+        description : make initial fit using self.peak_idx_lst
+        """
+        ### check
+        if self.peak_idx_lst == None:
+            print("You have to execute find_peak ahead!")
+            sys.exit(1)
+        if self.peak_pair_idx_lst == None:
+            print("You have to execute find_peak_pair ahead!")
+            sys.exit(1)
+
+        if notice:
+            print("make initial fitting")
+
+        best_param_lst = []
+        for peak_idx in self.peak_idx_lst:
+            try:
+                param_lst = curve_fit(
+                    smooziee_func.lorentzian_for_curve_fit,
+                    self.x_arr[peak_idx-idx_range:peak_idx+idx_range],
+                    self.y_arr[peak_idx-idx_range:peak_idx+idx_range],
+                    ### p0 => initial peak point
+                    p0=[self.y_arr[peak_idx], self.x_arr[peak_idx], 1.]
+                )
+                best_param_lst.append( \
+                    [param_lst[0][0], param_lst[0][1], param_lst[0][2]])
+            except:
+                print("index %s could not make curve_fit" % str(peak_idx))
+                best_param_lst.append( \
+                    [self.y_arr[peak_idx], self.x_arr[peak_idx], 1.])
 
 
 
