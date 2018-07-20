@@ -9,7 +9,7 @@ import numpy as np
 import sys
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
-from smooziee.module import function as smooziee_func
+
 import lmfit
 
 
@@ -17,10 +17,11 @@ import lmfit
 ### CODING NOTICE ###
 
 # Naming
-function names ... lmfit.lineshapes ('lorentzian', 'gaussian', ...)
-parameter names ... each function's parameters which are noticed
-                    in documentation of "built in models"
-                    ('amplitude', 'center', ...)
+function names ... Follow "lmfit.lineshapes" function
+                    ('lorentzian', 'gaussian', ...)
+parameter names ... Each function's parameters which are noticed
+                    in lmfit's documentation of "built-in models"
+                    (for lorentzian, 'amplitude', 'center', ...)
 
 """
 
@@ -250,10 +251,9 @@ class Processor(lmfit.Parameters):
         def residual(params, x, y, func_names):
             return y - model(params, x, func_names)
 
-        def main():
-            pass
-            # minimize(residual, self.func_info_lst,
-            #          args=(x_arr, y_arr, self.func_name_lst))
+        # here is how to fit using this
+        # minimize(residual, self.func_info_lst,
+        #          args=(x_arr, y_arr, self.func_name_lst))
 
     def initial_fit(self, idx_range=5, notice=True):
         pass
@@ -407,16 +407,14 @@ class Processor(lmfit.Parameters):
 
         # smoothing
         if self.func_info_lst[0]['params']['amplitude'] is not None:
-            curve_x_arr = np.linspace(
-                min(self.x_arr), max(self.x_arr), 200)
-            curve_y_arr = 0
-            for func_info_dic in self.func_info_lst:
-                params = func_info_dic['params']
-                curve_y_arr += smooziee_func.lorentzian(
-                    curve_x_arr,
-                    [params['amplitude'], params['center'], params['sigma']])
-            ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
-                    linestyle='--')
+            def tot_func(x):
+                return sum(getattr(lmfit.lineshapes, func_info['function'])
+                           (x, **func_info['params'])
+                           for func_info in self.func_info_lst)
+
+            curve_x_arr = np.linspace(min(self.x_arr), max(self.x_arr), 200)
+            ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
+                    c='blue', linewidth=1., linestyle='--')
 
         # ### set center
         # if self.revised_best_param_lst is not None:
