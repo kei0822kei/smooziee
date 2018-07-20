@@ -160,18 +160,17 @@ class Processor(lmfit.Parameters):
     def set_function_info(self, func_name_lst):
         """
         set the type of function
-        ex)["Gaussian", "Lonentz"]
+        ex)["gaussian", "lonentzian"]
         """
         self.function_name_lst = func_name_lst
         if len(func_name_lst) != len(self.peak_idx_lst):
             print("The number of peaks and functions must be the same")
             sys.exit(1)
-        
 
         func_info_lst = []
         for func in self.function_name_lst:
             if func == "lorentzian":
-                each_info = {"function" : func, 
+                each_info = {"function" : func,
                             "params" : {"A" : None, "myu" : None, "sigma" : None},
                             "optimize" : {"A" : True, "myu" : True, "sigma" : None}}
             func_info_lst.append(each_info)
