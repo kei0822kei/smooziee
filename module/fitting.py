@@ -234,21 +234,26 @@ class Processor(lmfit.Parameters):
         """
         set parameters for minimization
         """
-        def model_params(func):
+        def conv_params(func):
             if func == 'lorentzian':
-                return "A", "myu", "sigma"
+                return {'A': 'amplitude',
+                        'mu': 'center',
+                        'sigma': 'sigma'}
             elif func == 'gaussian':
-                return "mu", "sigma"
+                raise ValueError
 
-        def model(params):
-            model = None
-            for i in range(len(self.peak_idx_lst)):
-                pass
+        def model(params, x, func_name_lst):
+            sum(getattr(lmfit.lineshapes, func)
+                (x, **{conv_params(func)[k]: v for k, v in params})
+                for func in func_name_lst)
 
+        def residual(params, x, y, func_name_lst):
+            return y - model(params, x, func_name_lst)
 
-        # def function_for_optimization(params, self.x_arr, self.y_arr):
-        #     for i in range(len(self.peak_idx_lst)):
-        #         if self.func_info_lst['function'] == 'lorentzian':
+        def main():
+            pass
+            # minimize(residual, self.func_info_lst,
+            #          args=(x_arr, y_arr, self.func_name_lst))
 
     def initial_fit(self, idx_range=5, notice=True):
         """
