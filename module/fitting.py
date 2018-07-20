@@ -27,15 +27,15 @@ class Processor(lmfit.Parameters):
     """
     deals with phonon scattering experimental data
     """
-
     def __init__(self, x_arr=None, y_arr=None, name=None):
         """
         input       : x_arr; np.array
                       y_arr; np.array
         """
 
-        ### inheritance
-        super().__init__()
+        # ### inheritance
+        # super().__init__()
+        self.lmfit_params =  lmfit.Parameters()
 
         ### set self
         self.x_arr = x_arr
@@ -50,7 +50,6 @@ class Processor(lmfit.Parameters):
         self.center_peak = None  ### ex) 62 or [36, 97]
         self.function_name_lst = None
         self.func_info_lst = None
-
 
     def find_peak(self, order, notice=True):
         """
@@ -67,7 +66,6 @@ class Processor(lmfit.Parameters):
         self.peak_idx_lst = list(argrelmax_return_tuple[0])
         if notice:
             print("found %s peaks" % len(self.peak_idx_lst))
-
 
     def add_peak(self, idx, run_mode='test'):
         """
@@ -91,7 +89,6 @@ class Processor(lmfit.Parameters):
             self.peak_idx_lst.append(idx)
             self.peak_idx_lst.sort()
 
-
     def remove_peak(self, idx):
         """
         input       : idx; int => remove peak index
@@ -103,7 +100,6 @@ class Processor(lmfit.Parameters):
         self.function = None
         self.center_peak = None
         print("self.best_param_lst were set None")
-
 
     def find_peak_pair(self, threshold=6, notice=True):
         """
@@ -134,7 +130,6 @@ class Processor(lmfit.Parameters):
         if notice:
             print("found %s pair" % str(len(self.peak_pair_idx_lst)))
 
-
     def revise_peak_pair(self, peak_pair_lst, run_mode='test'):
         """
         input       : run_mode; str => 'test' or 'revise'
@@ -156,7 +151,6 @@ class Processor(lmfit.Parameters):
             print("run_mode must be 'test' or 'revise'")
             sys.exit(1)
 
-
     def set_function_info(self, func_name_lst):
         """
         set the type of function
@@ -171,33 +165,66 @@ class Processor(lmfit.Parameters):
         for func in self.function_name_lst:
             if func == "lorentzian":
                 each_info = {"function" : func,
-                            "params" : {"A" : None, "myu" : None, "sigma" : None},
-                            "optimize" : {"A" : True, "myu" : True, "sigma" : None}}
+                             "params" :
+                               {"A" : None, "myu" : None, "sigma" : None},
+                             "optimize" :
+                               {"A" : True, "myu" : True, "sigma" : None}}
             func_info_lst.append(each_info)
 
         self.func_info_lst = func_info_lst
 
-
-    def set_params_for_minimize(self):
+    def set_params_for_optimization(self):
         """
         set parameters for minimization
         """
+
+
         ### use lmfit.Parameters
         for i, func_info_dic in enumerate(self.func_info_lst):
+            ### find peak pair
+            same_idx = None
+            for pair_idx_lst in self.peak_pair_idx_lst:
+                if self.peak_idx_lst[i] == pair_idx_lst[1]:
+                    same_idx = self.peak_idx_lst.index(pair_idx_lst[0])
+
             if func_info_dic['function'] == 'lorentzian':
-                self.add('A_'+str(i), value=func_info_dic['param']['A'])
-                self.add('myu_'+str(i), value=func_info_dic['param']['myu'])
-                self.add('sigma_'+str(i), value=func_info_dic['param']['sigma'])
+                self.lmfit_params.add('A_'+str(i),
+                    value=func_info_dic['param']['A'],
+                    vary=func_info_dic['optimize']['A'],
+                    min=func_info_dic['boundary']['A'][0],
+                    max=func_info_dic['boundary']['A'][1])
+                self.lmfit_params.add('myu_'+str(i),
+                    value=func_info_dic['param']['myu'],
+                    vary=func_info_dic['optimize']['myu'],
+                    min=func_info_dic['boundary']['myu'][0],
+                    max=func_info_dic['boundary']['myu'][1])
+                if same_idx == None:
+                    self.lmfit_params.add('sigma_'+str(i),
+                        value=func_info_dic['param']['sigma'],
+                        vary=func_info_dic['optimize']['sigma'],
+                        min=func_info_dic['boundary']['sigma'][0],
+                        max=func_info_dic['boundary']['sigma'][1])
+                else:
+                    self.lmfit_params.add('sigma_'+str(i),
+                        value=func_info_dic['param']['sigma'],
+                        vary=func_info_dic['optimize']['sigma'],
+                        min=func_info_dic['boundary']['sigma'][0],
+                        max=func_info_dic['boundary']['sigma'][1],
+                        expr='sigma_'+str(same_idx))
             else:
-                print("function name %s is not understood" % func_info_dic['function'])
+                print("function name %s is not understood"
+                        % func_info_dic['function'])
                 sys.exit(1)
             print("%s parameters were set" % str(len(self.keys())))
 
-
-    def set_function_for_minimize(self):
+    def set_function_for_optmization(self):
         """
         set parameters for minimization
         """
+        def function_for_optimization(params, self.x_arr, self.y_arr):
+            for i in range(len(self.peak_idx_lst)):
+                if self.func_info_lst['function'] == 'lorentzian':
+
 
 
 
