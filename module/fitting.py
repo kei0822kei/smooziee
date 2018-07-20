@@ -163,12 +163,12 @@ class Processor(lmfit.Parameters):
         for func in self.function_name_lst:
             if func == "lorentzian":
                 each_info = {"function": func,
-                             "params": {"A": None, "myu": None,
+                             "params": {"A": None, "mu": None,
                                         "sigma": None},
-                             "optimize": {"A": True, "myu": True,
+                             "optimize": {"A": True, "mu": True,
                                           "sigma": True},
                              "boundary": {"A": [epsilon, None],
-                                          "myu": [None, None],
+                                          "mu": [None, None],
                                           "sigma": [epsilon, None]}}
             func_info_lst.append(each_info)
 
@@ -178,7 +178,7 @@ class Processor(lmfit.Parameters):
         """
         fix variables
         peak_idx_lst is index of peaks to fix ex)[2, 9]
-        both arguments must be list   ex)["A", "myu"]#
+        both arguments must be list   ex)["A", "mu"]#
         """
         fixed_param_lst = self.func_info_lst
         for each_idx in peak_fix_idx_lst:
@@ -204,11 +204,11 @@ class Processor(lmfit.Parameters):
                                       vary=func_info_dic['optimize']['A'],
                                       min=func_info_dic['boundary']['A'][0],
                                       max=func_info_dic['boundary']['A'][1])
-                self.lmfit_params.add('myu_'+str(i),
-                                      value=func_info_dic['param']['myu'],
-                                      vary=func_info_dic['optimize']['myu'],
-                                      min=func_info_dic['boundary']['myu'][0],
-                                      max=func_info_dic['boundary']['myu'][1])
+                self.lmfit_params.add('mu_'+str(i),
+                                      value=func_info_dic['param']['mu'],
+                                      vary=func_info_dic['optimize']['mu'],
+                                      min=func_info_dic['boundary']['mu'][0],
+                                      max=func_info_dic['boundary']['mu'][1])
                 if same_idx is None:
                     self.lmfit_params.add(
                         'sigma_'+str(i),
@@ -236,7 +236,7 @@ class Processor(lmfit.Parameters):
         """
         def model_params(func):
             if func == 'lorentzian':
-                return "A", "myu", "sigma"
+                return "A", "mu", "sigma"
             elif func == 'gaussian':
                 return "mu", "sigma"
 
