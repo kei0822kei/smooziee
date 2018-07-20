@@ -199,6 +199,12 @@ class Processor(lmfit.Parameters):
         set parameters for minimization
         """
         # use lmfit.Parameters
+        def common_params(param):
+            return {'value': func_info_dic['param'][param],
+                    'vary': func_info_dic['optimize'][param],
+                    'min': func_info_dic['boundary'][param][0],
+                    'max': func_info_dic['boundary'][param][1]}
+
         for i, func_info_dic in enumerate(self.func_info_lst):
             # find peak pair
             same_idx = None
@@ -207,33 +213,16 @@ class Processor(lmfit.Parameters):
                     same_idx = self.peak_idx_lst.index(pair_idx_lst[0])
 
             if func_info_dic['function'] == 'lorentzian':
-                self.lmfit_params.add(
-                    'A_'+str(i),
-                    value=func_info_dic['param']['amplitude'],
-                    vary=func_info_dic['optimize']['amplitude'],
-                    min=func_info_dic['boundary']['amplitude'][0],
-                    max=func_info_dic['boundary']['amplitude'][1])
-                self.lmfit_params.add(
-                    'mu_'+str(i),
-                    value=func_info_dic['param']['center'],
-                    vary=func_info_dic['optimize']['center'],
-                    min=func_info_dic['boundary']['center'][0],
-                    max=func_info_dic['boundary']['center'][1])
+                for param in ['amplitude', 'center']:
+                    self.lmfit_params.add(param + '_' + str(i),
+                                          **common_params(param))
                 if same_idx is None:
-                    self.lmfit_params.add(
-                        'sigma_'+str(i),
-                        value=func_info_dic['param']['sigma'],
-                        vary=func_info_dic['optimize']['sigma'],
-                        min=func_info_dic['boundary']['sigma'][0],
-                        max=func_info_dic['boundary']['sigma'][1])
+                    self.lmfit_params.add('sigma_' + str(i),
+                                          **common_params('sigma'))
                 else:
-                    self.lmfit_params.add(
-                        'sigma_'+str(i),
-                        value=func_info_dic['param']['sigma'],
-                        vary=func_info_dic['optimize']['sigma'],
-                        min=func_info_dic['boundary']['sigma'][0],
-                        max=func_info_dic['boundary']['sigma'][1],
-                        expr='sigma_'+str(same_idx))
+                    self.lmfit_params.add('sigma_' + str(i),
+                                          **common_params('sigma'),
+                                          expr='sigma_' + str(same_idx))
             else:
                 print("function name %s is not understood"
                       % func_info_dic['function'])
