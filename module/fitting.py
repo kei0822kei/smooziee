@@ -13,9 +13,17 @@ from smooziee.module import function as smooziee_func
 import lmfit
 
 
-###############################################################################
-# phonon scattering
-###############################################################################
+"""
+### CODING NOTICE ###
+
+# Naming
+function names ... lmfit.lineshapes ('lorentzian', 'gaussian', ...)
+parameter names ... each function's parameters which are noticed
+                    in documentation of "built in models"
+                    ('amplitude', 'center', ...)
+
+"""
+
 
 epsilon = 1e-8
 
@@ -151,7 +159,7 @@ class Processor(lmfit.Parameters):
     def set_function_info(self, func_name_lst):
         """
         set the type of function
-        ex)["gaussian", "lonentzian"]
+        ex)["gaussian", "lorentzian"]
         """
         self.function_name_lst = func_name_lst
         if len(func_name_lst) != len(self.peak_idx_lst):
@@ -162,13 +170,13 @@ class Processor(lmfit.Parameters):
         for func in self.function_name_lst:
             if func == "lorentzian":
                 each_info = {"function": func,
-                             "params": {"A": None, "mu": None,
-                                        "sigma": None},
-                             "optimize": {"A": True, "mu": True,
-                                          "sigma": True},
-                             "boundary": {"A": [epsilon, None],
-                                          "mu": [None, None],
-                                          "sigma": [epsilon, None]}}
+                             "params": {'amplitude': None, 'center': None,
+                                        'sigma': None},
+                             "optimize": {'amplitude': True, 'center': True,
+                                          'sigma': True},
+                             "boundary": {'amplitude': [epsilon, None],
+                                          'center': [None, None],
+                                          'sigma': [epsilon, None]}}
             func_info_lst.append(each_info)
 
         self.func_info_lst = func_info_lst
@@ -177,7 +185,7 @@ class Processor(lmfit.Parameters):
         """
         fix variables
         peak_idx_lst is index of peaks to fix ex)[2, 9]
-        both arguments must be list   ex)["A", "mu"]#
+        both arguments must be list   ex)['amplitude', 'center']#
         """
         fixed_param_lst = self.func_info_lst
         for each_idx in peak_fix_idx_lst:
@@ -198,16 +206,18 @@ class Processor(lmfit.Parameters):
                     same_idx = self.peak_idx_lst.index(pair_idx_lst[0])
 
             if func_info_dic['function'] == 'lorentzian':
-                self.lmfit_params.add('A_'+str(i),
-                                      value=func_info_dic['param']['A'],
-                                      vary=func_info_dic['optimize']['A'],
-                                      min=func_info_dic['boundary']['A'][0],
-                                      max=func_info_dic['boundary']['A'][1])
-                self.lmfit_params.add('mu_'+str(i),
-                                      value=func_info_dic['param']['mu'],
-                                      vary=func_info_dic['optimize']['mu'],
-                                      min=func_info_dic['boundary']['mu'][0],
-                                      max=func_info_dic['boundary']['mu'][1])
+                self.lmfit_params.add(
+                    'A_'+str(i),
+                    value=func_info_dic['param']['amplitude'],
+                    vary=func_info_dic['optimize']['amplitude'],
+                    min=func_info_dic['boundary']['amplitude'][0],
+                    max=func_info_dic['boundary']['amplitude'][1])
+                self.lmfit_params.add(
+                    'mu_'+str(i),
+                    value=func_info_dic['param']['center'],
+                    vary=func_info_dic['optimize']['center'],
+                    min=func_info_dic['boundary']['center'][0],
+                    max=func_info_dic['boundary']['center'][1])
                 if same_idx is None:
                     self.lmfit_params.add(
                         'sigma_'+str(i),
@@ -233,21 +243,12 @@ class Processor(lmfit.Parameters):
         """
         set parameters for minimization
         """
-        def conv_params(func):
-            if func == 'lorentzian':
-                return {'A': 'amplitude',
-                        'mu': 'center',
-                        'sigma': 'sigma'}
-            elif func == 'gaussian':
-                raise ValueError
+        def model(params, x, func_names):
+            sum(getattr(lmfit.lineshapes, func)(x, **params)
+                for func in func_names)
 
-        def model(params, x, func_name_lst):
-            sum(getattr(lmfit.lineshapes, func)
-                (x, **{conv_params(func)[k]: v for k, v in params})
-                for func in func_name_lst)
-
-        def residual(params, x, y, func_name_lst):
-            return y - model(params, x, func_name_lst)
+        def residual(params, x, y, func_names):
+            return y - model(params, x, func_names)
 
         def main():
             pass
@@ -278,8 +279,8 @@ class Processor(lmfit.Parameters):
 
         for peak_idx in self.peak_idx_lst:
             i = None
-            self.func_info_lst[i]['params']['A'] = self.y_arr[peak_idx]
-            self.func_info_lst[i]['params']['mu'] = self.x_arr[peak_idx]
+            self.func_info_lst[i]['params']['amplitude'] = self.y_arr[peak_idx]
+            self.func_info_lst[i]['params']['center'] = self.x_arr[peak_idx]
             self.func_info_lst[i]['params']['sigma'] = 1
 
     # def initial_fit(self, idx_range=5, notice=True):
@@ -405,14 +406,15 @@ class Processor(lmfit.Parameters):
             return
 
         # smoothing
-        if self.func_info_lst[0]['params']['A'] is not None:
+        if self.func_info_lst[0]['params']['amplitude'] is not None:
             curve_x_arr = np.linspace(
                 min(self.x_arr), max(self.x_arr), 200)
             curve_y_arr = 0
             for func_info_dic in self.func_info_lst:
                 params = func_info_dic['params']
                 curve_y_arr += smooziee_func.lorentzian(
-                    curve_x_arr, [params['A'], params['mu'], params['sigma']])
+                    curve_x_arr,
+                    [params['amplitude'], params['center'], params['sigma']])
             ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
                     linestyle='--')
 
