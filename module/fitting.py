@@ -245,12 +245,7 @@ class Processor(lmfit.Parameters):
             for i in range(len(self.peak_idx_lst)):
                 pass
 
-
-        # def function_for_optimization(params, self.x_arr, self.y_arr):
-        #     for i in range(len(self.peak_idx_lst)):
-        #         if self.func_info_lst['function'] == 'lorentzian':
-
-    def initial_fit(self, idx_range=5, notice=True):
+    def set_initial_param(self, notice=True):
         """
         input       : idx_range; int => idx_range = 10 (default)
                           peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
@@ -269,22 +264,50 @@ class Processor(lmfit.Parameters):
         if notice:
             print("make initial fitting")
 
-        best_param_lst = []
         for peak_idx in self.peak_idx_lst:
-            try:
-                param_lst = curve_fit(
-                    smooziee_func.lorentzian_for_curve_fit,
-                    self.x_arr[peak_idx-idx_range:peak_idx+idx_range],
-                    self.y_arr[peak_idx-idx_range:peak_idx+idx_range],
-                    # p0 => initial peak point
-                    p0=[self.y_arr[peak_idx], self.x_arr[peak_idx], 1.]
-                )
-                best_param_lst.append([param_lst[0][0], param_lst[0][1],
-                                       param_lst[0][2]])
-            except:
-                print("index %s could not make curve_fit" % str(peak_idx))
-                best_param_lst.append([self.y_arr[peak_idx],
-                                       self.x_arr[peak_idx], 1.])
+            self.func_info_lst[i]['params']['A']
+              = self.y_arr[peak_idx]
+            self.func_info_lst[i]['params']['mu']
+              = self.x_arr[peak_idx]
+            self.func_info_lst[i]['params']['sigma']
+              = 1
+
+
+    # def initial_fit(self, idx_range=5, notice=True):
+    #     """
+    #     input       : idx_range; int => idx_range = 10 (default)
+    #                       peak fit using data_arr[peak_idx-10:peak_idx+10, 0]
+    #                       if idx_range = 10
+    #     set         : self.best_param_lst
+    #     description : make initial fit using self.peak_idx_lst
+    #     """
+    #     # check
+    #     if self.peak_idx_lst is None:
+    #         print("You have to execute find_peak ahead!")
+    #         sys.exit(1)
+    #     if self.peak_pair_idx_lst is None:
+    #         print("You have to execute find_peak_pair ahead!")
+    #         sys.exit(1)
+
+    #     if notice:
+    #         print("make initial fitting")
+
+    #     best_param_lst = []
+    #     for peak_idx in self.peak_idx_lst:
+    #         try:
+    #             param_lst = curve_fit(
+    #                 smooziee_func.lorentzian_for_curve_fit,
+    #                 self.x_arr[peak_idx-idx_range:peak_idx+idx_range],
+    #                 self.y_arr[peak_idx-idx_range:peak_idx+idx_range],
+    #                 # p0 => initial peak point
+    #                 p0=[self.y_arr[peak_idx], self.x_arr[peak_idx], 1.]
+    #             )
+    #             best_param_lst.append([param_lst[0][0], param_lst[0][1],
+    #                                    param_lst[0][2]])
+    #         except:
+    #             print("index %s could not make curve_fit" % str(peak_idx))
+    #             best_param_lst.append([self.y_arr[peak_idx],
+    #                                    self.x_arr[peak_idx], 1.])
 
     # def save(self, savefile=None):
     #     """
@@ -373,22 +396,16 @@ class Processor(lmfit.Parameters):
             return
 
         # smoothing
-        # if self.best_param_lst is not None:
-        #     curve_x_arr = np.linspace(
-        #         min(self.x_arr), max(self.x_arr), 200)
-        #     curve_y_arr = 0
-        #     for param in self.best_param_lst:
-        #         curve_y_arr += smooziee_func.lorentzian(curve_x_arr,
-        #                            [param[0], param[1], param[2]]
-        #                        )
-        #     ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
-        #             linestyle='--')
-
-        #     for param in self.best_param_lst:
-        #         curve_y_arr = smooziee_func.lorentzian(curve_x_arr,
-        #                           [param[0], param[1], param[2]])
-        #         ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=0.3,
-        #                 linestyle='--')
+        if self.func_info_lst[0]['params']['A'] is not None:
+            curve_x_arr = np.linspace(
+                min(self.x_arr), max(self.x_arr), 200)
+            curve_y_arr = 0
+            for func_info_dic in self.func_info_lst:
+                params = func_info_dic['params']
+                curve_y_arr += smooziee_func.lorentzian(curve_x_arr,
+                                   [params['A'], params['mu'], params['sigma']])
+            ax.plot(curve_x_arr, curve_y_arr, c='blue', linewidth=1.,
+                    linestyle='--')
 
         # ### set center
         # if self.revised_best_param_lst is not None:
