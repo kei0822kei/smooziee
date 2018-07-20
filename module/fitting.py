@@ -200,23 +200,25 @@ class Processor(lmfit.Parameters):
 
             if func_info_dic['function'] == 'lorentzian':
                 self.lmfit_params.add('A_'+str(i),
-                    value=func_info_dic['param']['A'],
-                    vary=func_info_dic['optimize']['A'],
-                    min=func_info_dic['boundary']['A'][0],
-                    max=func_info_dic['boundary']['A'][1])
+                                      value=func_info_dic['param']['A'],
+                                      vary=func_info_dic['optimize']['A'],
+                                      min=func_info_dic['boundary']['A'][0],
+                                      max=func_info_dic['boundary']['A'][1])
                 self.lmfit_params.add('myu_'+str(i),
-                    value=func_info_dic['param']['myu'],
-                    vary=func_info_dic['optimize']['myu'],
-                    min=func_info_dic['boundary']['myu'][0],
-                    max=func_info_dic['boundary']['myu'][1])
-                if same_idx == None:
-                    self.lmfit_params.add('sigma_'+str(i),
+                                      value=func_info_dic['param']['myu'],
+                                      vary=func_info_dic['optimize']['myu'],
+                                      min=func_info_dic['boundary']['myu'][0],
+                                      max=func_info_dic['boundary']['myu'][1])
+                if same_idx is None:
+                    self.lmfit_params.add(
+                        'sigma_'+str(i),
                         value=func_info_dic['param']['sigma'],
                         vary=func_info_dic['optimize']['sigma'],
                         min=func_info_dic['boundary']['sigma'][0],
                         max=func_info_dic['boundary']['sigma'][1])
                 else:
-                    self.lmfit_params.add('sigma_'+str(i),
+                    self.lmfit_params.add(
+                        'sigma_'+str(i),
                         value=func_info_dic['param']['sigma'],
                         vary=func_info_dic['optimize']['sigma'],
                         min=func_info_dic['boundary']['sigma'][0],
@@ -224,7 +226,7 @@ class Processor(lmfit.Parameters):
                         expr='sigma_'+str(same_idx))
             else:
                 print("function name %s is not understood"
-                        % func_info_dic['function'])
+                      % func_info_dic['function'])
                 sys.exit(1)
             print("%s parameters were set" % str(len(self.keys())))
 
@@ -244,11 +246,11 @@ class Processor(lmfit.Parameters):
         set         : self.best_param_lst
         description : make initial fit using self.peak_idx_lst
         """
-        ### check
-        if self.peak_idx_lst == None:
+        # check
+        if self.peak_idx_lst is None:
             print("You have to execute find_peak ahead!")
             sys.exit(1)
-        if self.peak_pair_idx_lst == None:
+        if self.peak_pair_idx_lst is None:
             print("You have to execute find_peak_pair ahead!")
             sys.exit(1)
 
@@ -262,18 +264,15 @@ class Processor(lmfit.Parameters):
                     smooziee_func.lorentzian_for_curve_fit,
                     self.x_arr[peak_idx-idx_range:peak_idx+idx_range],
                     self.y_arr[peak_idx-idx_range:peak_idx+idx_range],
-                    ### p0 => initial peak point
+                    # p0 => initial peak point
                     p0=[self.y_arr[peak_idx], self.x_arr[peak_idx], 1.]
                 )
-                best_param_lst.append( \
-                    [param_lst[0][0], param_lst[0][1], param_lst[0][2]])
+                best_param_lst.append([param_lst[0][0], param_lst[0][1],
+                                       param_lst[0][2]])
             except:
                 print("index %s could not make curve_fit" % str(peak_idx))
-                best_param_lst.append( \
-                    [self.y_arr[peak_idx], self.x_arr[peak_idx], 1.])
-
-
-
+                best_param_lst.append([self.y_arr[peak_idx],
+                                       self.x_arr[peak_idx], 1.])
 
     # def save(self, savefile=None):
     #     """
@@ -309,7 +308,6 @@ class Processor(lmfit.Parameters):
     #     # self.plot(ax)
     #     # plt.savefig(self.name+'.png')
 
-
     # def load(self, loadfile):
     #     infh = h5py.File(loadfile, 'r')
 
@@ -332,38 +330,37 @@ class Processor(lmfit.Parameters):
     #         pass
     #     infh.close()
 
-
     def plot(self, ax, run_mode=None):
         """
         input         : ax;  ex) ax = fig.add_subplot(111)
                         run_mode; str => 'raw_data', 'peak'
         """
-        ### raw data
+        # raw data
         ax.scatter(self.x_arr, self.y_arr, c='red', s=2)
         ax.set_title(self.name)
 
         if run_mode == 'raw_data':
             return
 
-        ### find peak
+        # find peak
         if self.peak_idx_lst is not None:
             if self.peak_pair_idx_lst is None:
-                c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
+                c_lst = ['black' for _ in range(len(self.peak_idx_lst))]
             else:
-                c_lst = [ 'black' for _ in range(len(self.peak_idx_lst)) ]
+                c_lst = ['black' for _ in range(len(self.peak_idx_lst))]
                 color_lst = ['green', 'yellow', 'pink', 'purple']
                 for i in range(len(self.peak_pair_idx_lst)):
                     for j in self.peak_pair_idx_lst[i]:
                         c_lst[self.peak_idx_lst.index(j)] = color_lst[i]
 
-            ax.scatter(self.x_arr[self.peak_idx_lst], \
+            ax.scatter(self.x_arr[self.peak_idx_lst],
                        self.y_arr[self.peak_idx_lst],
                        c=c_lst, s=30)
 
         if run_mode == 'peak':
             return
 
-        ### smoothing
+        # smoothing
         # if self.best_param_lst is not None:
         #     curve_x_arr = np.linspace(
         #         min(self.x_arr), max(self.x_arr), 200)
@@ -394,9 +391,9 @@ class Processor(lmfit.Parameters):
         #     for param in self.best_param_lst:
         #         r_curve_y_arr = smooziee_func.lorentzian(curve_x_arr,
         #                           [param[0], param[1], param[2]])
-        #         ax.plot(curve_x_arr, r_curve_y_arr, c='orange', linewidth=0.3,
+        #         ax.plot(curve_x_arr, r_curve_y_arr, c='orange',
+        #                 linewidth=0.3,
         #                 linestyle='--')
-
 
     # def initial_fit(self, idx_range=5, notice=True):
     #     """
@@ -438,14 +435,14 @@ class Processor(lmfit.Parameters):
     #     for idx_pair_lst in self.peak_pair_idx_lst:
     #         mean_d_val = \
     #           (best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] +
-    #            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2]) / 2
+    #            best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])
+    #                           ][2]) / 2
     #         best_param_lst[self.peak_idx_lst.index(idx_pair_lst[0])][2] \
     #             = mean_d_val
     #         best_param_lst[self.peak_idx_lst.index(idx_pair_lst[1])][2] \
     #             = mean_d_val
 
     #     self.best_param_lst = best_param_lst
-
 
     # def revise_best_param(self, revise_lst):
     #     """
@@ -476,7 +473,6 @@ class Processor(lmfit.Parameters):
     #         param_lst[revise_lst[0][i]][revise_lst[1]] = \
     #             param_lst[revise_lst[0][i]][revise_lst[1]] + revise_lst[2]
     #     self.best_param_lst = param_lst
-
 
     # def set_center(self, peak_idx):
     #     """
