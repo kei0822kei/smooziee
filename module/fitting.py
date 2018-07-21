@@ -9,8 +9,9 @@ import sys
 import re
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
-
+from sklearn.metrics import mean_squared_error
 import lmfit
+import numpy as np
 
 
 """
@@ -213,6 +214,7 @@ class Processor(lmfit.Parameters):
                                           **func_info_dic[name])
                 for name in ['sigma']:
                     if same_idx is None:
+                        print(func_info_dic[name])
                         self.lmfit_params.add(name=name+'_'+str(i),
                                               **func_info_dic[name])
                     else:
@@ -225,27 +227,53 @@ class Processor(lmfit.Parameters):
                 sys.exit(1)
         print("%s parameters were set" % str(len(self.func_info_lst)))
 
+    # def set_function_for_optmization(self):
+    #     """
+    #     set parameters for minimization
+    #     """
+    #     def before_us(x):
+    #         return re.search('(?<=_)(.*)', x)
+
+    #     def model(func_info_lst, x):
+    #         sum(getattr(lmfit.lineshapes, func_info_dic['funcution'])
+    #             (x, **{before_us(k): v for k, v in func_info_dic.items()
+    #                    if k != 'function'})
+    #             for func_info_dic in func_info_lst)
+
+    #     def residual(x, y):
+    #         return y - model(self.func_info_lst, x)
+
+    #     self.optimize_function = residual
+
     def set_function_for_optmization(self):
         """
-        set parameters for minimization
+        set function for minimization
         """
-        def before_us(x):
-            return re.search('(?<=_)(.*)', x)
+        def model_function(params, x, y):
+            # for i in range(len(self.func_info_lst)):
+            for i in range(1):
+                fitting_y = 0
+                if self.func_info_lst[i]['function'] == 'lorentzian':
+                    fitting_y += lmfit.lineshapes.lorentzian(x,
+                                     amplitude=params['amplitude'+'_'+str(i)],
+                                     center=params['center'+'_'+str(i)],
+                                     sigma=params['sigma'+'_'+str(i)])
+                else:
+                    raise ValueError("what is the function %s"
+                                         % self.func_info_lst[i]['function'])
+            print(y)
+            print(fitting_y)
+            error = np.sqrt(mean_squared_error(y, fitting_y))
+            print(error)
 
-        def model(func_info_lst, x):
-            sum(getattr(lmfit.lineshapes, func_info_dic['funcution'])
-                (x, **{before_us(k): v for k, v in func_info_dic.items()
-                       if k != 'function'})
-                for func_info_dic in func_info_lst)
+            return error
 
-        def residual(func_info_lst, x, y):
-            return y - model(func_info_lst, x)
-
-        self.optimize_function = residual
+        self.optimize_function = model_function
 
     def fit(self):
-        lmfit.minimize(self.optimize_function, self.func_info_lst,
-                       args=(self.x_arr, self.y_arr))
+        out = lmfit.minimize(self.optimize_function, self.lmfit_params,
+                         args=(self.x_arr, self.y_arr))
+        return out
 
     def set_initial_param(self, notice=True):
         """
