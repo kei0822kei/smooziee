@@ -1,4 +1,5 @@
 import re
+
 import lmfit
 
 
@@ -32,6 +33,7 @@ class Fitting():
                   for i, peak_func in enumerate(peak_funcs)]
         self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
+        self.result = None
 
     def _model(self, i, peak_func):
         """
@@ -45,19 +47,19 @@ class Fitting():
             prefix = 'g' + str(i) + '_'
             return lmfit.models.GaussianModel(prefix=prefix)
 
-    def _param_name(self, i_peak, param):
+    def _param_name(self, i_peak, param_name):
         """
-        ex. i_peak=1, param='sigma' -> 'g1_sigma'
+        ex. i_peak=1, param_name='sigma' -> 'g1_sigma'
 
         """
-        r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param))
-        match_names = [param_name for param_name in self.model.param_names
-                       if r.match(param_name)]
+        r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
+        match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
         if len(match_names) != 1:
-            raise ValueError("'%s_%s' match %s" % (i_peak, param, match_names))
+            raise ValueError("'%s_%s' match %s"
+                             % (i_peak, param_name, match_names))
         return match_names[0]
 
-    def set_params_expr(self, ix_peaks, ix_peakpairs, params):
+    def set_params_expr(self, ix_peaks, ix_peakpairs, param_names):
         """
         Inputs
         ------
@@ -65,7 +67,7 @@ class Fitting():
             ex. [36, 62, 97]
         ix_peakpairs: list of list (must be sorted)
             ex. [[36, 97], [...], ...]
-        params: list of str
+        param_names: list of str
             ex. ['amplitude', 'center']
 
         """
@@ -76,24 +78,32 @@ class Fitting():
                     pair_i_peak = ix_peaks.index(ix_peakpair[0])
             return pair_i_peak
 
-        for param in params:
+        for param_name in param_names:
             for i, ix_peak in enumerate(ix_peaks):
                 if pair_i_peak(ix_peak) is not None:
-                    self.params[self._param_name(i, param)].set(
-                        expr=self._param_name(pair_i_peak(ix_peak), param))
+                    self.params[self._param_name(i, param_name)].set(
+                        expr=self._param_name(pair_i_peak(ix_peak),
+                                              param_name))
 
-    def set_params_vary(self, i_peaks, params, vary):
+    def set_params_vary(self, i_peaks, param_names, vary):
         """
         i_peaks: list of int
             index of peaks to fix  ex.[2, 9]
-        params: list of str
+        param_names: list of str
             ex. ['amplitude', 'center']
         vary: bool
 
         """
         for i_peak in i_peaks:
-            for param in params:
-                self.params[self._param_name(i_peak, param)].set(vary=vary)
+            for param_name in param_names:
+                self.params[self._param_name(i_peak, param_name)
+                            ].set(vary=vary)
 
     def fit(self, x, y):
-        self.model.fit(y, self.params, y)
+        self.result = self.model.fit(y, self.params, x=x)
+
+    def plot(self, show_init=False):
+        self.result.plot(show_init=show_init)
+
+    def plot_evalcomponents(self):
+        pass
