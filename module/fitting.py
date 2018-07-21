@@ -223,7 +223,7 @@ class Processor(lmfit.Parameters):
                 print("function name %s is not understood"
                       % func_info_dic['function'])
                 sys.exit(1)
-            print("%s parameters were set" % str(len(self.keys())))
+        print("%s parameters were set" % str(len(self.func_info_lst)))
 
     def set_function_for_optmization(self):
         """
