@@ -182,16 +182,17 @@ class Processor(lmfit.Parameters):
 
         self.func_info_lst = func_info_lst
 
-    def set_fix_params(self, peak_fix_idx_lst, var_lst):
+    def set_fix_params(self, peak_fix_idx_lst, var_lst, vary):
         """
         fix variables
         peak_idx_lst is index of peaks to fix ex)[2, 9]
         both arguments must be list   ex)['amplitude', 'center']#
+        vary = True or False
         """
         for func_info_dic in self.func_info_lst:
             for each_idx in peak_fix_idx_lst:
                 for each_var in var_lst:
-                    self.func_info_lst[each_idx]["optimize"][each_var] = False
+                    self.func_info_lst[each_idx][each_var]['vary'] = vary
 
     def set_params_for_optimization(self):
         """
@@ -263,11 +264,10 @@ class Processor(lmfit.Parameters):
         if notice:
             print("make initial fitting")
 
-        for peak_idx in self.peak_idx_lst:
-            i = None
-            self.func_info_lst[i]['params']['amplitude'] = self.y_arr[peak_idx]
-            self.func_info_lst[i]['params']['center'] = self.x_arr[peak_idx]
-            self.func_info_lst[i]['params']['sigma'] = 1
+        for i, peak_idx in enumerate(self.peak_idx_lst):
+            self.func_info_lst[i]['amplitude']['value'] = self.y_arr[peak_idx]
+            self.func_info_lst[i]['center']['value'] = self.x_arr[peak_idx]
+            self.func_info_lst[i]['sigma']['value'] = 1
 
     # def initial_fit(self, idx_range=5, notice=True):
     #     """
