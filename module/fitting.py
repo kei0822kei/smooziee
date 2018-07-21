@@ -55,7 +55,6 @@ class Processor(lmfit.Parameters):
         self.function = None
         self.center_peak = None  # ex) 62 or [36, 97]
         self.func_info_lst = None
-        self.fixed_param_lst = None
 
     def find_peak(self, order, notice=True):
         """
@@ -164,8 +163,7 @@ class Processor(lmfit.Parameters):
             else:
                 min_ = None
 
-            return {'name': name, 'value': None, 'vary': True,
-                    'min': min_, 'max': None}
+            return {'value': None, 'vary': True, 'min': min_, 'max': None}
 
         if len(func_name_lst) != len(self.peak_idx_lst):
             raise ValueError("The number of peaks and functions"
@@ -174,11 +172,11 @@ class Processor(lmfit.Parameters):
         func_info_lst = []  # FIXME revise this option
         for func in func_name_lst:
             if func == 'lorentzian':
-                params_toadd = [default_params['amplitude'],
-                                default_params['center'],
-                                default_params['sigma']]
+                func_info_dic = {'amplitude': default_params['amplitude'],
+                                 'center': default_params['center'],
+                                 'sigma': default_params['sigma']}
 
-            func_info_lst.append(params_toadd)
+            func_info_lst.append(func_info_dic)
 
         self.func_info_lst = func_info_lst
 
@@ -188,23 +186,27 @@ class Processor(lmfit.Parameters):
         peak_idx_lst is index of peaks to fix ex)[2, 9]
         both arguments must be list   ex)['amplitude', 'center']#
         """
-        for each_idx in peak_fix_idx_lst:
-            for each_var in var_lst:
-                self.func_info_lst[each_idx]["optimize"][each_var] = False
+        for func_info_dic in self.func_info_lst:
+            for each_idx in peak_fix_idx_lst:
+                for each_var in var_lst:
+                    self.func_info_lst[each_idx]["optimize"][each_var] = False
 
     def set_params_for_optimization(self):
         """
         set parameters for minimization
         """
         # use lmfit.Parameters
-        def common_params(param, i):
-            return {'name': param + '_' + str(i),
-                    'value': func_info_dic['param'][param],
-                    'vary': func_info_dic['optimize'][param],
-                    'min': func_info_dic['boundary'][param][0],
-                    'max': func_info_dic['boundary'][param][1]}
+        # def common_params(param, i):
+        #     return {'name': param + '_' + str(i),
+        #             'value': func_info_dic['param'][param],
+        #             'vary': func_info_dic['optimize'][param],
+        #             'min': func_info_dic['boundary'][param][0],
+        #             'max': func_info_dic['boundary'][param][1]}
 
-        for i, func_info in enumerate(self.func_info_lst):
+        def common_params(func_info, i):
+            pass
+
+        for i, func_info_dic in enumerate(self.func_info_lst):
             # find peak pair
             same_idx = None
             for pair_idx_lst in self.peak_pair_idx_lst:
@@ -212,8 +214,9 @@ class Processor(lmfit.Parameters):
                     same_idx = self.peak_idx_lst.index(pair_idx_lst[0])
 
             if func_info_dic['function'] == 'lorentzian':
-                for param in ['amplitude', 'center']:
-                    self.lmfit_params.add(**common_params(param, i))
+                for name in ['amplitude', 'center']:
+                    self.lmfit_params.add(name=name+'_'+str(i),
+                                          **
                 if same_idx is None:
                     self.lmfit_params.add(**common_params('sigma', i))
                 else:
@@ -221,7 +224,7 @@ class Processor(lmfit.Parameters):
                                           expr='sigma_'+str(same_idx))
             else:
                 print("function name %s is not understood"
-                      % func_info_dic['function'])
+                      % func_info['function'])
                 sys.exit(1)
             print("%s parameters were set" % str(len(self.keys())))
 
