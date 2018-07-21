@@ -173,9 +173,10 @@ class Processor(lmfit.Parameters):
         func_info_lst = []  # FIXME revise this option
         for func in func_name_lst:
             if func == 'lorentzian':
-                func_info_dic = {'amplitude': default_params['amplitude'],
-                                 'center': default_params['center'],
-                                 'sigma': default_params['sigma']}
+                func_info_dic = {'function': func,
+                                 'amplitude': default_params('amplitude'),
+                                 'center': default_params('center'),
+                                 'sigma': default_params('sigma')}
 
             func_info_lst.append(func_info_dic)
 
@@ -216,8 +217,7 @@ class Processor(lmfit.Parameters):
 
             if func_info_dic['function'] == 'lorentzian':
                 for name in ['amplitude', 'center']:
-                    self.lmfit_params.add(name=name+'_'+str(i),
-                                          **
+                    self.lmfit_params.add(name=name+'_'+str(i))
                 if same_idx is None:
                     self.lmfit_params.add(**common_params('sigma', i))
                 else:
