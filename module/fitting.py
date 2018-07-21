@@ -5,7 +5,6 @@
 # fitting 2d data
 ###############################################################################
 
-import numpy as np
 import sys
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
@@ -67,8 +66,9 @@ class Processor(lmfit.Parameters):
                       see more about 'scipy.signal.argrelmax'
                       http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
-        extrema, _ = argrelmax(self.y_arr, order=order)
-        self.peak_idx_lst = list(extrema)  # TODO Why not np.ndarray
+        # extrema, _ = argrelmax(self.y_arr, order=order)
+        extrema = argrelmax(self.y_arr, order=order)
+        self.peak_idx_lst = list(extrema[0])  # TODO Why not np.ndarray
         if notice:
             print("found %s peaks" % len(self.peak_idx_lst))
 
@@ -173,9 +173,9 @@ class Processor(lmfit.Parameters):
         for func in self.func_name_lst:
             if func == 'lorentzian':
                 func_info_dic = {'function': func,
-                                 'amplitude': default_params['amplitude'],
-                                 'center': default_params['center'],
-                                 'sigma': default_params['sigma']}
+                                 'amplitude': default_params('amplitude'),
+                                 'center': default_params('center'),
+                                 'sigma': default_params('sigma')}
 
             func_info_lst.append(func_info_dic)
 
@@ -197,18 +197,8 @@ class Processor(lmfit.Parameters):
         set parameters for minimization
         """
         # use lmfit.Parameters
-        # def common_params(param, i):
-        #     return {'name': param + '_' + str(i),
-        #             'value': func_info_dic['param'][param],
-        #             'vary': func_info_dic['optimize'][param],
-        #             'min': func_info_dic['boundary'][param][0],
-        #             'max': func_info_dic['boundary'][param][1]}
 
-        def common_params(func_info, i):
-            pass
-
-        for i, (func_info_dic, func_name) in enumerate(zip(self.func_info_lst,
-                                                           self.func_name_lst)):
+        for i, func_info_dic in enumerate(self.func_info_lst):
             # find peak pair
             same_idx = None
             for pair_idx_lst in self.peak_pair_idx_lst:
@@ -218,15 +208,18 @@ class Processor(lmfit.Parameters):
             if func_info_dic['function'] == 'lorentzian':
                 for name in ['amplitude', 'center']:
                     self.lmfit_params.add(name=name+'_'+str(i),
-                                          **
-                if same_idx is None:
-                    self.lmfit_params.add(**common_params('sigma', i))
-                else:
-                    self.lmfit_params.add(**common_params('sigma', i),
-                                          expr='sigma_'+str(same_idx))
+                                          **func_info_dic[name])
+                for name in ['sigma']:
+                    if same_idx is None:
+                        self.lmfit_params.add(name=name+'_'+str(i),
+                                              **func_info_dic[name])
+                    else:
+                        self.lmfit_params.add(name=name+'_'+str(i),
+                                              **func_info_dic[name],
+                                              expr=name+'_'+str(same_idx))
             else:
                 print("function name %s is not understood"
-                      % func_info['function'])
+                      % func_info_dic['function'])
                 sys.exit(1)
             print("%s parameters were set" % str(len(self.keys())))
 
@@ -244,9 +237,6 @@ class Processor(lmfit.Parameters):
         # here is how to fit using this
         # minimize(residual, self.func_info_lst,
         #          args=(x_arr, y_arr, self.func_name_lst))
-
-    def initial_fit(self, idx_range=5, notice=True):
-        pass
 
     def set_initial_param(self, notice=True):
         """
@@ -396,15 +386,15 @@ class Processor(lmfit.Parameters):
             return
 
         # smoothing
-        if self.func_info_lst[0]['params']['amplitude'] is not None:
-            def tot_func(x):
-                return sum(getattr(lmfit.lineshapes, func_info['function'])
-                           (x, **func_info['params'])
-                           for func_info in self.func_info_lst)
+        # if self.func_info_lst[0]['params']['amplitude'] is not None:
+        #     def tot_func(x):
+        #         return sum(getattr(lmfit.lineshapes, func_info['function'])
+        #                    (x, **func_info['params'])
+        #                    for func_info in self.func_info_lst)
 
-            curve_x_arr = np.linspace(min(self.x_arr), max(self.x_arr), 200)
-            ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
-                    c='blue', linewidth=1., linestyle='--')
+        #     curve_x_arr = np.linspace(min(self.x_arr), max(self.x_arr), 200)
+        #     ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
+        #             c='blue', linewidth=1., linestyle='--')
 
         # ### set center
         # if self.revised_best_param_lst is not None:
