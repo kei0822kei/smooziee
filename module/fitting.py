@@ -6,6 +6,7 @@
 ###############################################################################
 
 import sys
+import re
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
 
@@ -51,7 +52,7 @@ class Processor(lmfit.Parameters):
         self.best_param_lst = None  # [[initA_0, initx0_0, initd_0], ...]
         self.revised_best_param_lst = None
         self.center_move = None
-        self.function = None
+        self.optimize_function = None
         self.center_peak = None  # ex) 62 or [36, 97]
         self.func_info_lst = None
 
@@ -170,7 +171,7 @@ class Processor(lmfit.Parameters):
                              "must be the same")
 
         func_info_lst = []  # FIXME revise this option
-        for func in self.func_name_lst:
+        for func in func_name_lst:
             if func == 'lorentzian':
                 func_info_dic = {'function': func,
                                  'amplitude': default_params('amplitude'),
@@ -228,16 +229,23 @@ class Processor(lmfit.Parameters):
         """
         set parameters for minimization
         """
-        def model(params, x, func_names):
-            sum(getattr(lmfit.lineshapes, func)(x, **params)
-                for func in func_names)
+        def before_us(x):
+            return re.search('(?<=_)(.*)', x)
 
-        def residual(params, x, y, func_names):
-            return y - model(params, x, func_names)
+        def model(func_info_lst, x):
+            sum(getattr(lmfit.lineshapes, func_info_dic['funcution'])
+                (x, **{before_us(k): v for k, v in func_info_dic.items()
+                       if k != 'function'})
+                for func_info_dic in func_info_lst)
 
-        # here is how to fit using this
-        # minimize(residual, self.func_info_lst,
-        #          args=(x_arr, y_arr, self.func_name_lst))
+        def residual(func_info_lst, x, y):
+            return y - model(func_info_lst, x)
+
+        self.optimize_function = residual
+
+    def fit(self):
+        lmfit.minimize(self.optimize_function, self.func_info_lst,
+                       args=(self.x_arr, self.y_arr))
 
     def set_initial_param(self, notice=True):
         """
