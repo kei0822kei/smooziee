@@ -67,8 +67,9 @@ class Processor(lmfit.Parameters):
                       see more about 'scipy.signal.argrelmax'
                       http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
-        extrema, _ = argrelmax(self.y_arr, order=order)
-        self.peak_idx_lst = list(extrema)  # TODO Why not np.ndarray
+        # extrema, _ = argrelmax(self.y_arr, order=order)
+        extrema = argrelmax(self.y_arr, order=order)
+        self.peak_idx_lst = list(extrema[0])  # TODO Why not np.ndarray
         if notice:
             print("found %s peaks" % len(self.peak_idx_lst))
 
@@ -243,9 +244,6 @@ class Processor(lmfit.Parameters):
         # minimize(residual, self.func_info_lst,
         #          args=(x_arr, y_arr, self.func_name_lst))
 
-    def initial_fit(self, idx_range=5, notice=True):
-        pass
-
     def set_initial_param(self, notice=True):
         """
         input       : idx_range; int => idx_range = 10 (default)
@@ -394,15 +392,15 @@ class Processor(lmfit.Parameters):
             return
 
         # smoothing
-        if self.func_info_lst[0]['params']['amplitude'] is not None:
-            def tot_func(x):
-                return sum(getattr(lmfit.lineshapes, func_info['function'])
-                           (x, **func_info['params'])
-                           for func_info in self.func_info_lst)
+        # if self.func_info_lst[0]['params']['amplitude'] is not None:
+        #     def tot_func(x):
+        #         return sum(getattr(lmfit.lineshapes, func_info['function'])
+        #                    (x, **func_info['params'])
+        #                    for func_info in self.func_info_lst)
 
-            curve_x_arr = np.linspace(min(self.x_arr), max(self.x_arr), 200)
-            ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
-                    c='blue', linewidth=1., linestyle='--')
+        #     curve_x_arr = np.linspace(min(self.x_arr), max(self.x_arr), 200)
+        #     ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
+        #             c='blue', linewidth=1., linestyle='--')
 
         # ### set center
         # if self.revised_best_param_lst is not None:
