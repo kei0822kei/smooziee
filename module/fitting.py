@@ -170,7 +170,7 @@ class Processor(lmfit.Parameters):
                              "must be the same")
 
         func_info_lst = []  # FIXME revise this option
-        for func in self.func_name_lst:
+        for func in func_name_lst:
             if func == 'lorentzian':
                 func_info_dic = {'function': func,
                                  'amplitude': default_params('amplitude'),
