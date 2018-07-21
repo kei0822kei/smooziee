@@ -170,9 +170,10 @@ class Processor(lmfit.Parameters):
                              "must be the same")
 
         func_info_lst = []  # FIXME revise this option
-        for func in func_name_lst:
+        for func in self.func_name_lst:
             if func == 'lorentzian':
-                func_info_dic = {'amplitude': default_params['amplitude'],
+                func_info_dic = {'function': func,
+                                 'amplitude': default_params['amplitude'],
                                  'center': default_params['center'],
                                  'sigma': default_params['sigma']}
 
@@ -206,7 +207,8 @@ class Processor(lmfit.Parameters):
         def common_params(func_info, i):
             pass
 
-        for i, func_info_dic in enumerate(self.func_info_lst):
+        for i, (func_info_dic, func_name) in enumerate(zip(self.func_info_lst,
+                                                           self.func_name_lst)):
             # find peak pair
             same_idx = None
             for pair_idx_lst in self.peak_pair_idx_lst:
