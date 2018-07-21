@@ -28,11 +28,16 @@ class Fitting():
             ex. ['lorentzian', 'gaussian', ...]
 
         """
-        self.model = sum(self._model(i, peak_func)
-                         for i, peak_func in enumerate(peak_funcs))
+        models = [self._model(i, peak_func)
+                  for i, peak_func in enumerate(peak_funcs)]
+        self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
 
     def _model(self, i, peak_func):
+        """
+        Have to set in order that self._param_name() can convert
+
+        """
         if peak_func == 'lorentzian':
             prefix = 'l' + str(i) + '_'
             return lmfit.models.LorentzianModel(prefix=prefix)
@@ -45,10 +50,11 @@ class Fitting():
         ex. i_peak=1, param='sigma' -> 'g1_sigma'
 
         """
-        match_names = [re.match('^[a-zA-Z]+%d_%s' % (i_peak, param),
-                                param_name)
-                       for param_name in self.model.param_names]
-        assert len(match_names) == 1
+        r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param))
+        match_names = [param_name for param_name in self.model.param_names
+                       if r.match(param_name)]
+        if len(match_names) != 1:
+            raise ValueError("'%s_%s' match %s" % (i_peak, param, match_names))
         return match_names[0]
 
     def set_params_expr(self, ix_peaks, ix_peakpairs, params):
@@ -67,7 +73,7 @@ class Fitting():
             pair_i_peak = None
             for ix_peakpair in ix_peakpairs:
                 if ix_peakpair[1] == ix_peak:
-                    pair_i_peak = ix_peakpairs.index(ix_peakpair[0])
+                    pair_i_peak = ix_peaks.index(ix_peakpair[0])
             return pair_i_peak
 
         for param in params:
