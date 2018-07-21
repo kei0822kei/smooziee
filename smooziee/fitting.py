@@ -20,7 +20,7 @@ epsilon = 1e-8
 
 class Fitting():
 
-    def _init__(self, peak_funcs):
+    def __init__(self, peak_funcs):
         """
         Inputs
         ------
@@ -32,7 +32,7 @@ class Fitting():
                          for i, peak_func in enumerate(peak_funcs))
         self.params = self.model.make_params()
 
-    def _model(i, peak_func):
+    def _model(self, i, peak_func):
         if peak_func == 'lorentzian':
             prefix = 'l' + str(i) + '_'
             return lmfit.models.LorentzianModel(prefix=prefix)
@@ -40,28 +40,41 @@ class Fitting():
             prefix = 'g' + str(i) + '_'
             return lmfit.models.GaussianModel(prefix=prefix)
 
+    def _param_name(self, i_peak, param):
+        """
+        ex. i_peak=1, param='sigma' -> 'g1_sigma'
+
+        """
+        match_names = [re.match('^[a-zA-Z]+%d_%s' % (i_peak, param),
+                                param_name)
+                       for param_name in self.model.param_names]
+        assert len(match_names) == 1
+        return match_names[0]
+
     def set_params_expr(self, ix_peaks, ix_peakpairs, params):
         """
         Inputs
         ------
-        ix_peaks: list of int
+        ix_peaks: list of int (must be sorted)
             ex. [36, 62, 97]
-        ix_peakpairs: list of list
+        ix_peakpairs: list of list (must be sorted)
             ex. [[36, 97], [...], ...]
         params: list of str
             ex. ['amplitude', 'center']
 
         """
-        def same_idx(i):
-            same_idx = None
+        def pair_i_peak(ix_peak):
+            pair_i_peak = None
             for ix_peakpair in ix_peakpairs:
-                if self.ix_peakpair[i] == pair_idx_lst[1]:
-                    same_idx = self.peak_idx_lst.index(pair_idx_lst[0])
-            return same_idx
+                if ix_peakpair[1] == ix_peak:
+                    pair_i_peak = ix_peakpairs.index(ix_peakpair[0])
+            return pair_i_peak
 
-        for i, param_name in enumerate(self.model.param_names):
-            for param in params:
-                self.params['g1_'+param].set(expr=param_name+'_'+str(same_idx(i)))
+        for param in params:
+            for i, ix_peak in enumerate(ix_peaks):
+                if pair_i_peak(ix_peak) is not None:
+                    self.params[self._param_name(i, param)].set(
+                        expr=self._param_name(pair_i_peak(ix_peak), param))
 
     def set_params_vary(self, i_peaks, params, vary):
         """
@@ -72,16 +85,9 @@ class Fitting():
         vary: bool
 
         """
-        def param_name(i_peak, param):
-            match_names = [re.match('^[a-zA-Z]+%d_%s' % (i_peak, param),
-                                    param_name)
-                           for param_name in self.model.param_names]
-            assert len(match_names) == 1
-            return match_names[0]
-
         for i_peak in i_peaks:
             for param in params:
-                self.params[param_name(i_peak, param)].set(vary=vary)
+                self.params[self._param_name(i_peak, param)].set(vary=vary)
 
     def fit(self, x, y):
         self.model.fit(y, self.params, y)
