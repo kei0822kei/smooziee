@@ -173,7 +173,7 @@ class Processor(lmfit.Parameters):
 
         func_info_lst = []  # FIXME revise this option
         for func in func_name_lst:
-            if func == "lorentzian":
+            if func == 'lorentzian':
                 params_toadd = [default_params['amplitude'],
                                 default_params['center'],
                                 default_params['sigma']]
@@ -188,11 +188,9 @@ class Processor(lmfit.Parameters):
         peak_idx_lst is index of peaks to fix ex)[2, 9]
         both arguments must be list   ex)['amplitude', 'center']#
         """
-        fixed_param_lst = self.func_info_lst  # FIXME will be the same list
         for each_idx in peak_fix_idx_lst:
             for each_var in var_lst:
-                fixed_param_lst[each_idx]["optimize"][each_var] = False
-        self.fixed_param_lst = fixed_param_lst
+                self.func_info_lst[each_idx]["optimize"][each_var] = False
 
     def set_params_for_optimization(self):
         """
@@ -206,7 +204,7 @@ class Processor(lmfit.Parameters):
                     'min': func_info_dic['boundary'][param][0],
                     'max': func_info_dic['boundary'][param][1]}
 
-        for i, func_info_dic in enumerate(self.func_info_lst):
+        for i, func_info in enumerate(self.func_info_lst):
             # find peak pair
             same_idx = None
             for pair_idx_lst in self.peak_pair_idx_lst:
