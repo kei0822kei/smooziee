@@ -20,7 +20,7 @@ epsilon = 1e-8
 
 class Fitting():
 
-    def _init__(self, peak_funcs):
+    def __init__(self, peak_funcs):
         """
         Inputs
         ------
