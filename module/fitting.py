@@ -5,7 +5,6 @@
 # fitting 2d data
 ###############################################################################
 
-import numpy as np
 import sys
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
@@ -171,7 +170,7 @@ class Processor(lmfit.Parameters):
                              "must be the same")
 
         func_info_lst = []  # FIXME revise this option
-        for func in func_name_lst:
+        for func in self.func_name_lst:
             if func == 'lorentzian':
                 func_info_dic = {'function': func,
                                  'amplitude': default_params('amplitude'),
@@ -199,15 +198,6 @@ class Processor(lmfit.Parameters):
         set parameters for minimization
         """
         # use lmfit.Parameters
-        # def common_params(param, i):
-        #     return {'name': param + '_' + str(i),
-        #             'value': func_info_dic['param'][param],
-        #             'vary': func_info_dic['optimize'][param],
-        #             'min': func_info_dic['boundary'][param][0],
-        #             'max': func_info_dic['boundary'][param][1]}
-
-        def common_params(func_info, i):
-            pass
 
         for i, func_info_dic in enumerate(self.func_info_lst):
             # find peak pair
@@ -218,15 +208,19 @@ class Processor(lmfit.Parameters):
 
             if func_info_dic['function'] == 'lorentzian':
                 for name in ['amplitude', 'center']:
-                    self.lmfit_params.add(name=name+'_'+str(i))
-                if same_idx is None:
-                    self.lmfit_params.add(**common_params('sigma', i))
-                else:
-                    self.lmfit_params.add(**common_params('sigma', i),
-                                          expr='sigma_'+str(same_idx))
+                    self.lmfit_params.add(name=name+'_'+str(i),
+                                          **func_info_dic[name])
+                for name in ['sigma']:
+                    if same_idx is None:
+                        self.lmfit_params.add(name=name+'_'+str(i),
+                                              **func_info_dic[name])
+                    else:
+                        self.lmfit_params.add(name=name+'_'+str(i),
+                                              **func_info_dic[name],
+                                              expr=name+'_'+str(same_idx))
             else:
                 print("function name %s is not understood"
-                      % func_info['function'])
+                      % func_info_dic['function'])
                 sys.exit(1)
             print("%s parameters were set" % str(len(self.keys())))
 
