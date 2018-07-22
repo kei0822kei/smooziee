@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import re
 
 import lmfit
@@ -99,11 +100,17 @@ class Fitting():
                 self.params[self._param_name(i_peak, param_name)
                             ].set(vary=vary)
 
-    def fit(self, x, y):
+    def fit(self, x, y, set_bestparams=False):
         self.result = self.model.fit(y, self.params, x=x)
+        if set_bestparams:
+            self.params = self.result.params
 
     def plot(self, show_init=False):
         self.result.plot(show_init=show_init)
 
     def plot_evalcomponents(self):
-        pass
+        self.result.plot()
+        x = self.result.userkws['x']
+        for name, y in self.result.eval_components().items():
+            plt.plot(x, y, label=name)
+        plt.legend()
