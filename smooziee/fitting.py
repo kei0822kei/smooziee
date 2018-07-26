@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# fit data received from peak_search.PeakSearch
+###############################################################################
+
 import matplotlib.pyplot as plt
 import re
 

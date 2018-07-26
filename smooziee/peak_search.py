@@ -37,14 +37,14 @@ class PeakSearch():
             (x[ix_peaks] are the peaks recognized)
             example : [36, 62, 97, ...]
 
-        ix_peak_pairs : default None
+        ix_peakpairs : default None
             indexes recognized as peak pairs
-            (x[ix_peak_pairs] are the peak pairs recognized)
+            (x[ix_peakpairs] are the peak pairs recognized)
             example : [[36, 97], [...], ...]
 
         Notes
         -----
-        Indexes in ix_peaks and ix_peak_pairs are the indexes counted
+        Indexes in ix_peaks and ix_peakpairs are the indexes counted
         from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
 
     """
@@ -69,7 +69,7 @@ class PeakSearch():
         self.y = y
         self.name = name
         self.ix_peaks = None
-        self.ix_peak_pairs = None
+        self.ix_peakpairs = None
 
     def find_peak(self, order):
         """
@@ -164,7 +164,7 @@ class PeakSearch():
 
     def find_peak_pair(self, threshold=6):
         """
-        find peak pair from ix_peaks and set ix_peak_pairs
+        find peak pair from ix_peaks and set ix_peakpairs
 
             Parameters
             ----------
@@ -197,26 +197,26 @@ class PeakSearch():
                     pairs.append(
                       [self.ix_peaks[i], self.ix_peaks[j]])
                     flags.extend([i, j])
-        print("found %s pair" % str(len(self.ix_peak_pairs)))
-        self.ix_peak_pairs = pairs
+        print("found %s pair" % str(len(self.ix_peakpairs)))
+        self.ix_peakpairs = pairs
 
-    def revise_peak_pair(self, ix_peak_pairs, run_mode='test'):
+    def revise_peak_pair(self, ix_peakpairs, run_mode='test'):
         """
-        revise ix_peak_pairs
+        revise ix_peakpairs
 
             Parameters
             ----------
-            ix_peak_pairs:  lst
+            ix_peakpairs:  lst
                 peak pairs you want to make
-                  ex) ix_peak_pairs = [[36,72], [ , ], ... ]
+                  ex) ix_peakpairs = [[36,72], [ , ], ... ]
 
             run_mode : str default 'test'
                 run_mode = 'test' => test (make a figure)
-                run_mode = 'run' => set (self.ix_peak_pairs = ix_peak_pairs)
+                run_mode = 'run' => set (self.ix_peakpairs = ix_peakpairs)
 
             Notes
             -----
-            Indexes in ix_peak_pairs are the indexes counted
+            Indexes in ix_peakpairs are the indexes counted
             from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
 
         """
@@ -225,7 +225,7 @@ class PeakSearch():
             raise ValueError("run_mode must be 'test' or 'run'")
 
         if run_mode == 'test':
-            self.ix_peak_pairs = ix_peak_pairs
+            self.ix_peakpairs = ix_peakpairs
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
@@ -233,7 +233,7 @@ class PeakSearch():
             plt.show()
             plt.close()
         else:
-            self.ix_peak_pairs = ix_peak_pairs
+            self.ix_peakpairs = ix_peakpairs
 
     def plot(self, ax, run_mode=None):
         """
@@ -256,13 +256,13 @@ class PeakSearch():
 
         # peak
         if self.ix_peaks is not None:
-            if self.ix_peak_pairs is None:
+            if self.ix_peakpairs is None:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
             else:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
                 color_lst = plt.rcParams['axes.prop_cycle'].by_key()['color']
-                for i in range(len(self.ix_peak_pairs)):
-                    for j in self.ix_peak_pairs[i]:
+                for i in range(len(self.ix_peakpairs)):
+                    for j in self.ix_peakpairs[i]:
                         c_lst[self.ix_peaks.index(j)] = color_lst[i]
 
             ax.scatter(self.x[self.ix_peaks],
