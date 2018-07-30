@@ -122,8 +122,12 @@ class Fitting():
         self.params[self._param_names(param_name)].set(min=min_)
 
     def _set_params_value(self, param_name='center'):
+        def value(ix_peak):
+            return self.peaksearch.x[ix_peak]
+
         for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
-            self.params[self._param_name(i, param_name)].set(value=ix_peak)
+            self.params[self._param_name(i, param_name)].set(
+                value=value(ix_peak))
 
     def _set_params_expr(self, param_names=['sigma']):
         """
