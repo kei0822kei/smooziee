@@ -59,20 +59,21 @@ class Fitting():
             return peak_search
 
         # make model function and params
-        models = [self._model(i, peak_func)
-                  for i, peak_func in enumerate(peak_funcs)]
-        model = models[0]
-        for each_model in models[1:]:
-            model += each_model
+        def models():
+            models = [self._model(i, peak_func)
+                      for i, peak_func in enumerate(peak_funcs)]
+            return models
 
-        # params = self.model.make_params()
+        models = models()
 
         # set attributes
-        self.peaksearch = self.read_peaksearch(peaksearch)
+        # self.peaksearch = read_peaksearch(peaksearch)
+        self.peaksearch = peaksearch
         self.model = sum(models[1:], models[0])
-        self.models = models
         self.params = self.model.make_params()
         self.result = None
+
+        self._set_params_value()
 
     def _model(self, i, peak_func):
         """
@@ -89,6 +90,7 @@ class Fitting():
     def _param_name(self, i_peak, param_name):
         """
         ex. i_peak=1, param_name='sigma' -> 'g1_sigma'
+
         """
         r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
         match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
@@ -97,30 +99,33 @@ class Fitting():
                              % (i_peak, param_name, match_names))
         return match_names[0]
 
-    def set_params_expr(self, ix_peaks, ix_peakpairs, param_names):
+    def _set_params_value(self, param_name='center'):
+        for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
+            self.params[self._param_name(i, param_name)].set(value=ix_peak)
+
+    def set_params_expr(self, param_names):
         """
         Inputs
         ------
-        ix_peaks: list of int (must be sorted)
-            ex. [36, 62, 97]
-        ix_peakpairs: list of list (must be sorted)
-            ex. [[36, 97], [...], ...]
         param_names: list of str
             ex. ['amplitude', 'center']
         """
         def pair_i_peak(ix_peak):
             pair_i_peak = None
-            for ix_peakpair in ix_peakpairs:
+            for ix_peakpair in self.peaksearch.ix_peakpairs:
                 if ix_peakpair[1] == ix_peak:
-                    pair_i_peak = ix_peaks.index(ix_peakpair[0])
+                    pair_i_peak = self.peaksearch.ix_peaks.index(
+                        ix_peakpair[0])
             return pair_i_peak
 
+        def set_expr(param_name, i, ix_peak):
+            expr = self._param_name(pair_i_peak(ix_peak), param_name)
+            self.params[self._param_name(i, param_name)].set(expr=expr)
+
         for param_name in param_names:
-            for i, ix_peak in enumerate(ix_peaks):
+            for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
                 if pair_i_peak(ix_peak) is not None:
-                    self.params[self._param_name(i, param_name)].set(
-                        expr=self._param_name(pair_i_peak(ix_peak),
-                                              param_name))
+                    set_expr(param_name, i, ix_peak)
 
     def set_params_vary(self, i_peaks, param_names, vary):
         """
