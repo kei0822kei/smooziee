@@ -119,7 +119,8 @@ class Fitting():
             ex. 'amplitude'
 
         """
-        self.params[self._param_names(param_name)].set(min=min_)
+        for _param_name in self._param_names(param_name):
+            self.params[_param_name].set(min=min_)
 
     def _set_params_value(self, param_name='center'):
         def value(ix_peak):
