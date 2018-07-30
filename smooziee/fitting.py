@@ -74,6 +74,9 @@ class Fitting():
         self.result = None
 
         self._set_params_value()
+        self._set_params_expr()
+        self._set_params_min(param_name='amplitude')
+        self._set_params_min(param_name='sigma')
 
     def _model(self, i, peak_func):
         """
@@ -89,7 +92,7 @@ class Fitting():
 
     def _param_name(self, i_peak, param_name):
         """
-        ex. i_peak=1, param_name='sigma' -> 'g1_sigma'
+        ex. i_peak=1, param_name='sigma' => 'g1_sigma'
 
         """
         r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
@@ -99,11 +102,30 @@ class Fitting():
                              % (i_peak, param_name, match_names))
         return match_names[0]
 
+    def _param_names(self, param_name):
+        """
+        ex. param_name='sigma' => ['g1_sigma', 'g2_sigma', ...]
+
+        """
+        r = re.compile('^[a-zA-Z]+[0-9]+_%s' % param_name)
+        match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
+        return match_names
+
+    def _set_params_min(self, param_name, min_=epsilon):
+        """
+        Inputs
+        ------
+        param_name: str
+            ex. 'amplitude'
+
+        """
+        self.params[self._param_names(param_name)].set(min=min_)
+
     def _set_params_value(self, param_name='center'):
         for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
             self.params[self._param_name(i, param_name)].set(value=ix_peak)
 
-    def set_params_expr(self, param_names):
+    def _set_params_expr(self, param_names=['sigma']):
         """
         Inputs
         ------
