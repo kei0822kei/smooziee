@@ -13,11 +13,10 @@ from sklearn.metrics import mean_squared_error
 import lmfit
 import numpy as np
 
-
 class PeakSearch():
     """
     deals with phonon scattering experimental data
- 
+
         Attributes
         ----------
         x : np.array
@@ -125,14 +124,14 @@ class PeakSearch():
         for i in idx:
             if i in ix_peaks:
                 if add_or_remove == 'add':
-                    raise ValueError("Do you want to add peak or remove peak?\n
-                                      One is in ix_peaks, \n
+                    raise ValueError("Do you want to add peak or remove peak? \
+                                      One is in ix_peaks, \
                                       but another is not in ix_peaks")
                 add_or_remove = 'remove'
             else:
                 if add_or_remove == 'remove':
-                    raise ValueError("Do you want to add peak or remove peak?\n
-                                      One is in ix_peaks, \n
+                    raise ValueError("Do you want to add peak or remove peak? \
+                                      One is in ix_peaks, \
                                       but another is not in ix_peaks")
                 add_or_remove = 'add'
 
@@ -268,3 +267,15 @@ class PeakSearch():
             ax.scatter(self.x[self.ix_peaks],
                        self.y[self.ix_peaks],
                        c=c_lst, s=30)
+
+    def save(self, filename):
+        """
+        save object
+
+            Parameters
+            ----------
+            filename : str
+                output filename
+        """
+        import joblib
+        joblib.dump(self, filename)
