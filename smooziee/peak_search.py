@@ -16,7 +16,7 @@ import numpy as np
 class PeakSearch():
     """
     deals with phonon scattering experimental data
- 
+
         Attributes
         ----------
         x : np.array
