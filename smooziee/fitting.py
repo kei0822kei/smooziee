@@ -54,23 +54,50 @@ class Fitting():
             except:
                 pass
             # check
-            if peak_search.ix_peaks == None:
+            if peak_search.ix_peaks is None:
                 ValueError("ix_peaks was None, couldn't find ix_peaks")
             return peak_search
 
-        def _model(self, i, peak_func):
-            """
-            Have to set in order that self._param_name() can convert
+        # make model function and params
+        models = [self._model(i, peak_func)
+                  for i, peak_func in enumerate(peak_funcs)]
+        model = models[0]
+        for each_model in models[1:]:
+            model += each_model
 
-            """
-            if peak_func == 'lorentzian':
-                prefix = 'l' + str(i) + '_'
-                return lmfit.models.LorentzianModel(prefix=prefix)
-            elif peak_func == 'gaussian':
-                prefix = 'g' + str(i) + '_'
-                return lmfit.models.GaussianModel(prefix=prefix)
+        # params = self.model.make_params()
 
-        def set_params_expr(self, ix_peaks, ix_peakpairs, param_names):
+        # set attributes
+        self.peaksearch = self.read_peaksearch(peaksearch)
+        self.model = sum(models[1:], models[0])
+        self.models = models
+        self.params = self.model.make_params()
+        self.result = None
+
+    def _model(self, i, peak_func):
+        """
+        Have to set in order that self._param_name() can convert
+
+        """
+        if peak_func == 'lorentzian':
+            prefix = 'l' + str(i) + '_'
+            return lmfit.models.LorentzianModel(prefix=prefix)
+        elif peak_func == 'gaussian':
+            prefix = 'g' + str(i) + '_'
+            return lmfit.models.GaussianModel(prefix=prefix)
+
+    def _param_name(self, i_peak, param_name):
+        """
+        ex. i_peak=1, param_name='sigma' -> 'g1_sigma'
+        """
+        r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
+        match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
+        if len(match_names) != 1:
+            raise ValueError("'%s_%s' match %s"
+                             % (i_peak, param_name, match_names))
+        return match_names[0]
+
+    def set_params_expr(self, ix_peaks, ix_peakpairs, param_names):
         """
         Inputs
         ------
@@ -81,49 +108,19 @@ class Fitting():
         param_names: list of str
             ex. ['amplitude', 'center']
         """
-            def pair_i_peak(ix_peak):
-                pair_i_peak = None
-                for ix_peakpair in ix_peakpairs:
-                    if ix_peakpair[1] == ix_peak:
-                        pair_i_peak = ix_peaks.index(ix_peakpair[0])
-                return pair_i_peak
+        def pair_i_peak(ix_peak):
+            pair_i_peak = None
+            for ix_peakpair in ix_peakpairs:
+                if ix_peakpair[1] == ix_peak:
+                    pair_i_peak = ix_peaks.index(ix_peakpair[0])
+            return pair_i_peak
 
-            def _param_name(self, i_peak, param_name):
-                """
-                ex. i_peak=1, param_name='sigma' -> 'g1_sigma'
-                """
-                r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
-                match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
-                if len(match_names) != 1:
-                    raise ValueError("'%s_%s' match %s"
-                                     % (i_peak, param_name, match_names))
-                return match_names[0]
-
-            for param_name in param_names:
-                for i, ix_peak in enumerate(ix_peaks):
-                    if pair_i_peak(ix_peak) is not None:
-                        self.params[self._param_name(i, param_name)].set(
-                            expr=self._param_name(pair_i_peak(ix_peak),
-                                                  param_name))
-
-
-       # make model function and params
-        models = [self._model(i, peak_func)
-                  for i, peak_func in enumerate(peak_funcs)]
-        model = models[0]
-        for each_model in models[1:]:
-            model += each_model
-
-        params = self.model.make_params()
-
-
-
-        # set attributes
-        self.peaksearch = self.read_peaksearch(peaksearch)
-        self.model = sum(models[1:], models[0])
-        self.models = models
-        self.params = self.model.make_params()
-        self.result = None
+        for param_name in param_names:
+            for i, ix_peak in enumerate(ix_peaks):
+                if pair_i_peak(ix_peak) is not None:
+                    self.params[self._param_name(i, param_name)].set(
+                        expr=self._param_name(pair_i_peak(ix_peak),
+                                              param_name))
 
     def set_params_vary(self, i_peaks, param_names, vary):
         """
