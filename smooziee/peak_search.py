@@ -13,48 +13,141 @@ from sklearn.metrics import mean_squared_error
 import lmfit
 import numpy as np
 
-
-epsilon = 1e-8
-
-
 class PeakSearch():
     """
     deals with phonon scattering experimental data
+
+        Attributes
+        ----------
+        x : np.array
+            x data
+            set by __init__
+
+        y : np.array
+            y data
+            set by __init__
+
+        name : str
+            data name
+            set by __init__
+
+        ix_peaks : lst, default None
+            indexes recognized as data peaks
+            (x[ix_peaks] are the peaks recognized)
+            example : [36, 62, 97, ...]
+
+        ix_peakpairs : default None
+            indexes recognized as peak pairs
+            (x[ix_peakpairs] are the peak pairs recognized)
+            example : [[36, 97], [...], ...]
+
+        Notes
+        -----
+        Indexes in ix_peaks and ix_peakpairs are the indexes counted
+        from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
+
     """
     def __init__(self, x=None, y=None, name=None):
         """
-        input       : x; np.array
-                      y; np.array
+        set attributes
+
+        Parameters
+        ----------
+        x : np.array, default None
+            x data
+
+        y : np.array, default None
+            y data
+
+        name : str, default None
+            data name
+            don't have to be set
         """
-        # set self
+        # set attributes
         self.x = x
         self.y = y
         self.name = name
-        self.ix_peaks = None  # ex) [36, 62, 97]
-        self.ix_peak_pairs = None  # ex) [[36, 97], [...], ...]
+        self.ix_peaks = None
+        self.ix_peakpairs = None
 
-    def find_peak(self, order, verbose=True):
+    def find_peak(self, order):
         """
-        input       : order; int
-                      notice; bool => True (default)
-        output      : np.array => argrelmax_arr
-        description : find peak from data_lst
-                      you can change the value of 'order', which is parameter
-                      of definition 'scipy.signal.argrelmax'
-                      see more about 'scipy.signal.argrelmax'
-                      http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
+        find peak from data automatically
+
+        Parameters
+        ----------
+        order : int
+            threshold to recognize as peak
+
+        Notes
+        -----
+        1. set ix_peaks
+
+        2. find peak from data_lst
+           you can change the value of 'order', which is parameter
+           of definition 'scipy.signal.argrelmax'
+           see more about 'scipy.signal.argrelmax'
+           http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
         extrema = argrelmax(self.y, order=order)
         self.ix_peaks = list(extrema[0])
-        if verbose:
-            print("found %s peaks" % len(self.ix_peaks))
+        print("found %s peaks" % len(self.ix_peaks))
 
-    def add_peak(self, idx, run_mode='test'):
+    def revise_peak(self, idx, run_mode='test'):
         """
-        input       : run_mode; str => 'test' or 'add'
-                      idx; int => new index add to self.ix_peaks
+        revise ix_peaks set by find_peak (method)
+
+        Parameters
+        ----------
+        idx : int or lst
+            index you want to add to or remove from ix_peaks
+
+        run_mode : str default 'test'
+            choose 'test' or 'run'
+              test => This mode is used when you want to find out the index
+                      you want to add or remove by making a figure.
+                      In this mode, ix_peaks ARE NOT REVISED.
+              run => add or remove the index you specify
+
+        Note
+        ----
+        1. Parameter 'idx' is the index counted
+           from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
         """
+        if type(idx) == int:
+            idx = [idx]
+        if run_mode != 'test' and run_mode != 'run':
+            raise ValueError("run_mode must be 'test' or 'run'")
+
+        # set 'add_or_remove'
+        add_or_remove = None
+        for i in idx:
+            if i in ix_peaks:
+                if add_or_remove == 'add':
+                    raise ValueError("Do you want to add peak or remove peak? \
+                                      One is in ix_peaks, \
+                                      but another is not in ix_peaks")
+                add_or_remove = 'remove'
+            else:
+                if add_or_remove == 'remove':
+                    raise ValueError("Do you want to add peak or remove peak? \
+                                      One is in ix_peaks, \
+                                      but another is not in ix_peaks")
+                add_or_remove = 'add'
+
+        # add idx to or remove idx from ix_peaks
+        if add_or_remove == 'add':
+            print("add mode")
+            new_ix_peaks = self.ix_peaks.extend(idx)
+            new_ix_peaks.sort()
+        else:
+            print("remove mode")
+            for each_idx in idx:
+                new_ix_peaks = self.ix_peaks
+                new_ix_peaks.remove(each_idx)
+
         if run_mode == 'test':
+            print("test")
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
@@ -63,28 +156,33 @@ class PeakSearch():
             ax.set_title(self.name)
             plt.show()
             plt.close()
+        else:
+            print("set new ix_peaks to self.ix_peaks")
+            self.ix_peaks = new_ix_peaks
 
-        elif run_mode == 'add':
-            if idx in self.ix_peaks:
-                raise ValueError("index %s is already in the peak_idx_lst !")
 
-            self.ix_peaks.append(idx)
-            self.ix_peaks.sort()
-
-    def remove_peak(self, idx):
+    def find_peak_pair(self, threshold=6):
         """
-        input       : idx; int => remove peak index
-        """
-        self.ix_peaks.remove(idx)
+        find peak pair from ix_peaks and set ix_peakpairs
 
-    def find_peak_pair(self, threshold=6, verbose=True):
-        """
-        input       : threshold; float or int => threshold=6 (default)
-        description : recognize A and B as pair if abs(A) - abs(B) < threshold
-        set         : self.peak_pair_idx_lst
+            Parameters
+            ----------
+            threshold : int, default 6
+                see Notes
+
+            Returns
+            -------
+            fruit_price : int
+                description
+
+            Notes
+            -----
+            1. check from lowest peak point whether it has peak pair
+            2. if |peak1_x + peak2_x| / 2 < threshold,
+               recognize peak1 and peak2 as a pair
         """
         if self.ix_peaks is None:
-            raise ValueError("You have to execute find_peak ahead !")
+            raise ValueError("You have to execute find_peak ahead!")
 
         # condition => stokes anti-stokes
         pairs = []
@@ -92,41 +190,61 @@ class PeakSearch():
         for i in range(int(len(self.ix_peaks)/2)+1):
             for j in range(len(self.ix_peaks)-1, i, -1):
                 mean = (self.x[self.ix_peaks[i]]
-                        + self.x[self.ix_peaks[j]])
+                        + self.x[self.ix_peaks[j]]) / 2
                 if abs(mean) < threshold \
                         and i not in flags and j not in flags:
                     pairs.append(
                       [self.ix_peaks[i], self.ix_peaks[j]])
                     flags.extend([i, j])
+        print("found %s pair" % str(len(self.ix_peakpairs)))
+        self.ix_peakpairs = pairs
 
-        self.ix_peak_pairs = pairs
-
-        if verbose:
-            print("found %s pair" % str(len(self.ix_peak_pairs)))
-
-    def revise_peak_pair(self, ix_peak_pairs, run_mode='test'):
+    def revise_peak_pair(self, ix_peakpairs, run_mode='test'):
         """
-        input       : run_mode; str => 'test' or 'revise'
+        revise ix_peakpairs
+
+            Parameters
+            ----------
+            ix_peakpairs:  lst
+                peak pairs you want to make
+                  ex) ix_peakpairs = [[36,72], [ , ], ... ]
+
+            run_mode : str default 'test'
+                run_mode = 'test' => test (make a figure)
+                run_mode = 'run' => set (self.ix_peakpairs = ix_peakpairs)
+
+            Notes
+            -----
+            Indexes in ix_peakpairs are the indexes counted
+            from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
+
         """
+        # check
+        if run_mode != 'test' and run_mode != 'run':
+            raise ValueError("run_mode must be 'test' or 'run'")
+
         if run_mode == 'test':
-            self.ix_peak_pairs = ix_peak_pairs
+            self.ix_peakpairs = ix_peakpairs
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
             plt.title(self.name)
             plt.show()
             plt.close()
-
-        elif run_mode == 'revise':
-            self.ix_peak_pairs = ix_peak_pairs
-
         else:
-            raise ValueError("run_mode must be 'test' or 'revise'")
+            self.ix_peakpairs = ix_peakpairs
 
     def plot(self, ax, run_mode=None):
         """
-        input         : ax;  ex) ax = fig.add_subplot(111)
-                        run_mode; str => 'raw_data', 'peak'
+        plot data
+
+            Parameters
+            ----------
+            ax : fig.add_subplot
+            run_mode : str default None
+              run_mode = None or 'raw_data'
+              if None, decide from parameters set in attributes
+              if 'raw_data', plot raw_data
         """
         # raw data
         ax.scatter(self.x, self.y, c='red', s=2)
@@ -135,31 +253,29 @@ class PeakSearch():
         if run_mode == 'raw_data':
             return
 
-        # find peak
+        # peak
         if self.ix_peaks is not None:
-            if self.ix_peak_pairs is None:
+            if self.ix_peakpairs is None:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
             else:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
-                color_lst = ['green', 'yellow', 'pink', 'purple']
-                for i in range(len(self.ix_peak_pairs)):
-                    for j in self.ix_peak_pairs[i]:
+                color_lst = plt.rcParams['axes.prop_cycle'].by_key()['color']
+                for i in range(len(self.ix_peakpairs)):
+                    for j in self.ix_peakpairs[i]:
                         c_lst[self.ix_peaks.index(j)] = color_lst[i]
 
             ax.scatter(self.x[self.ix_peaks],
                        self.y[self.ix_peaks],
                        c=c_lst, s=30)
 
-        if run_mode == 'peak':
-            return
+    def save(self, filename):
+        """
+        save object
 
-        # smoothing
-        # if self.func_info_lst[0]['params']['amplitude'] is not None:
-        #     def tot_func(x):
-        #         return sum(getattr(lmfit.lineshapes, func_info['function'])
-        #                    (x, **func_info['params'])
-        #                    for func_info in self.func_info_lst)
-
-        #     curve_x_arr = np.linspace(min(self.x), max(self.x), 200)
-        #     ax.plot(curve_x_arr, [tot_func[x] for x in curve_x_arr],
-        #             c='blue', linewidth=1., linestyle='--')
+            Parameters
+            ----------
+            filename : str
+                output filename
+        """
+        import joblib
+        joblib.dump(self, filename)
