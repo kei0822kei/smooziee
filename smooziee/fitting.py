@@ -67,8 +67,8 @@ class Fitting():
         models = models()
 
         # set attributes
-        # self.peaksearch = read_peaksearch(peaksearch)
-        self.peaksearch = peaksearch
+        self.peaksearch = read_peaksearch(peaksearch)
+        # self.peaksearch = peaksearch
         self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
         self.result = None
@@ -135,7 +135,8 @@ class Fitting():
         Inputs
         ------
         param_names: list of str
-            ex. ['amplitude', 'center']
+            ex. ['sigma']
+
         """
         def pair_i_peak(ix_peak):
             pair_i_peak = None
@@ -154,19 +155,26 @@ class Fitting():
                 if pair_i_peak(ix_peak) is not None:
                     set_expr(param_name, i, ix_peak)
 
-    def set_params_vary(self, i_peaks, param_names, vary):
+    def set_params_vary(self, i_peaks, param_names, vary,
+                        all_param=False):
         """
         i_peaks: list of int
             index of peaks to fix  ex.[2, 9]
         param_names: list of str
-            ex. ['amplitude', 'center']
+            ex. ['center']
         vary: bool
+        all_param: bool
+            If True, set all params' vary by vary
 
         """
-        for i_peak in i_peaks:
-            for param_name in param_names:
-                self.params[self._param_name(i_peak, param_name)
-                            ].set(vary=vary)
+        if all_param:
+            for param_name in self.params:
+                self.params[param_name].set(vary=vary)
+        else:
+            for i_peak in i_peaks:
+                for param_name in param_names:
+                    self.params[self._param_name(i_peak, param_name)].set(
+                        vary=vary)
 
     def fit(self, x, y, set_bestparams=False):
         self.result = self.model.fit(y, self.params, x=x)
