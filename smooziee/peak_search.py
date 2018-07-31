@@ -279,3 +279,15 @@ class PeakSearch():
         """
         import joblib
         joblib.dump(self, filename)
+
+def read_peaksearch(filename):
+    """
+    load peaksearch object dumped by PeakSearch.save(filename)
+
+        Parameters
+        ----------
+        filename : str
+            input filename
+    """
+    import joblib
+    return joblib.load(filename)

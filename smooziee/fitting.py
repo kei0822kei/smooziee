@@ -45,9 +45,9 @@ class Fitting():
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
         """
 
-        def read_peaksearch(peaksearch):
+        def load_peaksearch(peaksearch):
             """
-            read from peaksearch of a file dumped by joblib
+            load from peaksearch of a file dumped by joblib
             """
             try:
                 peak_search = joblib.load(peaksearch)
@@ -67,8 +67,7 @@ class Fitting():
         models = models()
 
         # set attributes
-        # self.peaksearch = read_peaksearch(peaksearch)
-        self.peaksearch = peaksearch
+        self.peaksearch = self.load_peaksearch(peaksearch)
         self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
         self.result = None
