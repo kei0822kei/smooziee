@@ -122,7 +122,7 @@ class PeakSearch():
         # set 'add_or_remove'
         add_or_remove = None
         for i in idx:
-            if i in ix_peaks:
+            if i in self.ix_peaks:
                 if add_or_remove == 'add':
                     raise ValueError("Do you want to add peak or remove peak? \
                                       One is in ix_peaks, \
@@ -136,29 +136,29 @@ class PeakSearch():
                 add_or_remove = 'add'
 
         # add idx to or remove idx from ix_peaks
+        old_ix_peaks = self.ix_peaks.copy()
         if add_or_remove == 'add':
             print("add mode")
-            new_ix_peaks = self.ix_peaks.extend(idx)
-            new_ix_peaks.sort()
+            old_ix_peaks.extend(idx)
+            old_ix_peaks.sort()
         else:
             print("remove mode")
             for each_idx in idx:
-                new_ix_peaks = self.ix_peaks
-                new_ix_peaks.remove(each_idx)
+                old_ix_peaks.remove(each_idx)
 
         if run_mode == 'test':
             print("test")
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
-            ax.scatter(self.x[idx], self.y[idx],
-                       marker="*", c='blue', s=100)
+            ax.scatter(self.x[idx], self.y[idx]*1.05,
+                       marker="*", c='blue', s=30)
             ax.set_title(self.name)
             plt.show()
             plt.close()
         else:
             print("set new ix_peaks to self.ix_peaks")
-            self.ix_peaks = new_ix_peaks
+            self.ix_peaks = old_ix_peaks
 
 
     def find_peak_pair(self, threshold=6):
@@ -196,8 +196,8 @@ class PeakSearch():
                     pairs.append(
                       [self.ix_peaks[i], self.ix_peaks[j]])
                     flags.extend([i, j])
-        print("found %s pair" % str(len(self.ix_peakpairs)))
         self.ix_peakpairs = pairs
+        print("found %s pair" % str(len(self.ix_peakpairs)))
 
     def revise_peak_pair(self, ix_peakpairs, run_mode='test'):
         """
@@ -279,3 +279,15 @@ class PeakSearch():
         """
         import joblib
         joblib.dump(self, filename)
+
+def read_peaksearch(filename):
+    """
+    load peaksearch object dumped by PeakSearch.save(filename)
+
+        Parameters
+        ----------
+        filename : str
+            input filename
+    """
+    import joblib
+    return joblib.load(filename)
