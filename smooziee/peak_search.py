@@ -275,7 +275,7 @@ class PeakSearch():
             Parameters
             ----------
             filename : str
-                output filename
+              output filename
         """
         import joblib
         joblib.dump(self, filename)
@@ -287,7 +287,7 @@ def read_peaksearch(filename):
         Parameters
         ----------
         filename : str
-            input filename
+          input filename
     """
     import joblib
     return joblib.load(filename)
