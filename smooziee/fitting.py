@@ -156,7 +156,7 @@ class Fitting():
                     set_expr(param_name, i, ix_peak)
 
     def set_params_vary(self, i_peaks, param_names, vary,
-                        all_param=False, onlyif_expr_isNone=None):
+                        all_param=False, onlyif_expr_isnone=None):
         """
         i_peaks: list of int
             index of peaks to fix  ex.[2, 9]
@@ -165,21 +165,21 @@ class Fitting():
         vary: bool
         all_param: bool
             If True, set all params' vary by vary.
-        onlyif_expr_isNone: bool
+        onlyif_expr_isnone: bool
             Set vary only if 'expr' is None.
             Defaults to True if vary is True.
 
         """
         def set_vary(param_name):
-            if onlyif_expr_isNone:
+            if onlyif_expr_isnone:
                 if self.params[param_name].expr is None:
                     self.params[param_name].set(vary=vary)
             else:
                 self.params[param_name].set(vary=vary)
 
-        if onlyif_expr_isNone is None:
+        if onlyif_expr_isnone is None:
             if vary:
-                onlyif_expr_isNone = True
+                onlyif_expr_isnone = True
 
         if all_param:
             for param_name in self.params:
