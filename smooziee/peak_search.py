@@ -151,8 +151,8 @@ class PeakSearch():
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
-            ax.scatter(self.x[idx], self.y[idx]*1.05,
-                       marker="*", c='blue', s=30)
+            ax.scatter(self.x[idx], self.y[idx]*1.1,
+                       marker="*", c='blue', s=40)
             ax.set_title(self.name)
             plt.show()
             plt.close()
@@ -265,8 +265,8 @@ class PeakSearch():
                         c_lst[self.ix_peaks.index(j)] = color_lst[i]
 
             ax.scatter(self.x[self.ix_peaks],
-                       self.y[self.ix_peaks],
-                       c=c_lst, s=30)
+                       self.y[self.ix_peaks]*1.1,
+                       c=c_lst, s=40, marker='v')
 
     def save(self, filename):
         """
