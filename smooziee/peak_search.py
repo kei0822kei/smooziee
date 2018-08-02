@@ -5,13 +5,8 @@
 # peak search from 2d data
 ###############################################################################
 
-import sys
-import re
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error
-import lmfit
-import numpy as np
 
 class PeakSearch():
     """
