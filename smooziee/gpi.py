@@ -97,7 +97,7 @@ class GPI_reader():
 
             Returns
             -------
-            q_point : list
+            q_point : list of float
                 q point of tf_num
         """
         keyword = tf_num+'='
