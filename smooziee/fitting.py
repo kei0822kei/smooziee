@@ -230,6 +230,18 @@ class Fitting():
                 for param_name in param_names:
                     set_vary(self._param_name(i_peak, param_name))
 
+    def set_params(self, i_peak, param_name, values):
+        """
+        i_peak: int
+            index of peak to set
+        peak_param: str
+            parameter name to set
+        values: dict
+            values to set
+
+        """
+        self.params[self._param_name(i_peak, param_name)].set(**values)
+
     def fit(self):
         """
         fit data using params
