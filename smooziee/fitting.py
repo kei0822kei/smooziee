@@ -8,7 +8,6 @@
 import matplotlib.pyplot as plt
 import re
 import joblib
-import smooziee.smooziee.peak_search as pksearch
 import lmfit
 
 """
@@ -25,6 +24,7 @@ parameter names ... Each function's parameters which are noticed
 
 epsilon = 1e-8
 
+
 def load_peaksearch(peaksearch):
     """
     load from peaksearch of a file dumped by joblib
@@ -36,12 +36,13 @@ def load_peaksearch(peaksearch):
     """
     try:
         peak_search = joblib.load(peaksearch)
-    except:
+    except FileNotFoundError:
         peak_search = peaksearch
     # check
     if peak_search.ix_peaks is None:
         ValueError("ix_peaks was None, couldn't find ix_peaks")
     return peak_search
+
 
 def result_peaksearch(peaksearch, return_peak_num=True):
     """
@@ -63,6 +64,7 @@ def result_peaksearch(peaksearch, return_peak_num=True):
     plt.show()
     if return_peak_num:
         return peak_num
+
 
 class Fitting():
     """
@@ -95,7 +97,6 @@ class Fitting():
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
         """
 
-
         # make model function and params
         def models():
             models = [self._model(i, peak_func)
@@ -107,7 +108,8 @@ class Fitting():
         # set attributes
         # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
-        # print("the number of peak is %s" % str(len(self.peaksearch.ix_peaks)))
+        # print("the number of peak is %s"
+        # % str(len(self.peaksearch.ix_peaks)))
         self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
         self.result = None
@@ -261,7 +263,7 @@ class Fitting():
             eval_components : bool, default False
                 plot each function
         """
-        fig = plt.figure(figsize=(10,10))
+        fig = plt.figure(figsize=(10, 10))
         ax1 = fig.add_axes((0.1, 0.15, 0.85, 0.55))
         ax2 = fig.add_axes((0.1, 0.73, 0.85, 0.22))
         ax2.set_xticklabels([])
@@ -269,7 +271,7 @@ class Fitting():
 
         self.result.plot_fit(ax=ax1,
                              show_init=show_init,
-                            numpoints=numpoints)
+                             numpoints=numpoints)
         self.result.plot_residuals(ax=ax2)
         self.peaksearch.plot(ax1)
         ax1.set_title('')
