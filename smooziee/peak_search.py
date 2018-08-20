@@ -5,13 +5,8 @@
 # peak search from 2d data
 ###############################################################################
 
-import sys
-import re
 from scipy.signal import argrelmax
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error
-import lmfit
-import numpy as np
 
 class PeakSearch():
     """
@@ -64,8 +59,8 @@ class PeakSearch():
             don't have to be set
         """
         # set attributes
-        self.x = x
-        self.y = y
+        self.x_data = x
+        self.y_data = y
         self.name = name
         self.ix_peaks = None
         self.ix_peakpairs = None
@@ -89,7 +84,7 @@ class PeakSearch():
            see more about 'scipy.signal.argrelmax'
            http://jinpei0908.hatenablog.com/entry/2016/11/26/224216
         """
-        extrema = argrelmax(self.y, order=order)
+        extrema = argrelmax(self.y_data, order=order)
         self.ix_peaks = list(extrema[0])
         print("found %s peaks" % len(self.ix_peaks))
 
@@ -151,7 +146,7 @@ class PeakSearch():
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
-            ax.scatter(self.x[idx], self.y[idx]*1.1,
+            ax.scatter(self.x_data[idx], self.y_data[idx]*1.1,
                        marker="*", c='blue', s=40)
             ax.set_title(self.name)
             plt.show()
@@ -189,8 +184,8 @@ class PeakSearch():
         flags = []
         for i in range(int(len(self.ix_peaks)/2)+1):
             for j in range(len(self.ix_peaks)-1, i, -1):
-                mean = (self.x[self.ix_peaks[i]]
-                        + self.x[self.ix_peaks[j]]) / 2
+                mean = (self.x_data[self.ix_peaks[i]]
+                        + self.x_data[self.ix_peaks[j]]) / 2
                 if abs(mean) < threshold \
                         and i not in flags and j not in flags:
                     pairs.append(
@@ -247,7 +242,7 @@ class PeakSearch():
               if 'raw_data', plot raw_data
         """
         # raw data
-        ax.scatter(self.x, self.y, c='red', s=2)
+        ax.scatter(self.x_data, self.y_data, c='red', s=2)
         ax.set_title(self.name)
 
         if run_mode == 'raw_data':
@@ -259,13 +254,13 @@ class PeakSearch():
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
             else:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
-                color_lst = plt.rcParams['axes.prop_cycle'].by_key()['color']
+                color_lst = plt.rcParams['axes.prop_cycle'].by_key()['color'][3:]
                 for i in range(len(self.ix_peakpairs)):
                     for j in self.ix_peakpairs[i]:
                         c_lst[self.ix_peaks.index(j)] = color_lst[i]
 
-            ax.scatter(self.x[self.ix_peaks],
-                       self.y[self.ix_peaks]*1.1,
+            ax.scatter(self.x_data[self.ix_peaks],
+                       self.y_data[self.ix_peaks]*1.1,
                        c=c_lst, s=40, marker='v')
 
     def save(self, filename):
@@ -275,7 +270,7 @@ class PeakSearch():
             Parameters
             ----------
             filename : str
-                output filename
+              output filename
         """
         import joblib
         joblib.dump(self, filename)
@@ -287,7 +282,7 @@ def read_peaksearch(filename):
         Parameters
         ----------
         filename : str
-            input filename
+          input filename
     """
     import joblib
     return joblib.load(filename)

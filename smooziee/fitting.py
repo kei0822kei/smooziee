@@ -8,9 +8,8 @@
 import matplotlib.pyplot as plt
 import re
 import joblib
-
+import smooziee.smooziee.peak_search as pksearch
 import lmfit
-
 
 """
 ### CODING NOTICE ###
@@ -24,11 +23,62 @@ parameter names ... Each function's parameters which are noticed
 
 """
 
-
 epsilon = 1e-8
 
+def load_peaksearch(peaksearch):
+    """
+    load from peaksearch of a file dumped by joblib
+
+        Parameters
+        ----------
+        peaksearch : peak_search.PeakSearch obj or hdf5
+            PeakSearch.ix_peaks must be set.
+    """
+    try:
+        peak_search = joblib.load(peaksearch)
+    except:
+        peak_search = peaksearch
+    # check
+    if peak_search.ix_peaks is None:
+        ValueError("ix_peaks was None, couldn't find ix_peaks")
+    return peak_search
+
+def result_peaksearch(peaksearch, return_peak_num=True):
+    """
+    check the result of peak search
+
+        Parameters
+        ----------
+        peaksearch : peak_search.PeakSearch obj or hdf5
+            PeakSearch.ix_peaks must be set.
+        return_peak_num : bool (default True)
+            if True, return the number of peaks in peaksearch
+    """
+    processor = load_peaksearch(peaksearch)
+    peak_num = len(processor.ix_peaks)
+    print("the number of peaks: %s" % str(peak_num))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    processor.plot(ax)
+    plt.show()
+    if return_peak_num:
+        return peak_num
 
 class Fitting():
+    """
+    fit data by this class
+
+        Attributes
+        ----------
+        peaksearch : smooziee.smooziee.peak_search.PeakSearch object
+            PeakSearch object including data peaks and peak pairs
+        model : lmfit.model.CompositreModel object
+            sum of the models such as lorentzian fitted using data peaks
+        params : lmfit.parameter.Parameters object
+            parameters to fit
+        result : lmfit.model.ModelResult
+            parameters after fitting
+    """
 
     def __init__(self, peaksearch, peak_funcs):
         """
@@ -45,18 +95,6 @@ class Fitting():
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
         """
 
-        def load_peaksearch(peaksearch):
-            """
-            load from peaksearch of a file dumped by joblib
-            """
-            try:
-                peak_search = joblib.load(peaksearch)
-            except:
-                pass
-            # check
-            if peak_search.ix_peaks is None:
-                ValueError("ix_peaks was None, couldn't find ix_peaks")
-            return peak_search
 
         # make model function and params
         def models():
@@ -69,6 +107,7 @@ class Fitting():
         # set attributes
         # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
+        # print("the number of peak is %s" % str(len(self.peaksearch.ix_peaks)))
         self.model = sum(models[1:], models[0])
         self.params = self.model.make_params()
         self.result = None
@@ -124,7 +163,7 @@ class Fitting():
 
     def _set_params_value(self, param_name='center'):
         def value(ix_peak):
-            return self.peaksearch.x[ix_peak]
+            return self.peaksearch.x_data[ix_peak]
 
         for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
             self.params[self._param_name(i, param_name)].set(
@@ -189,17 +228,55 @@ class Fitting():
                 for param_name in param_names:
                     set_vary(self._param_name(i_peak, param_name))
 
-    def fit(self, x, y, set_bestparams=False):
+    def fit(self):
+        """
+        fit data using params
+
+        Note
+        ----
+        1. the result is set result attribute
+        2. If you want to set the result to  new parameter,
+           you have to conduct 'set_result_param_to_inital()'.
+        """
+        x = self.peaksearch.x_data
+        y = self.peaksearch.y_data
         self.result = self.model.fit(y, self.params, x=x)
-        if set_bestparams:
-            self.params = self.result.params
 
-    def plot(self, show_init=False):
-        self.result.plot(show_init=show_init)
+    def set_result_param_to_inital(self):
+        """
+        set result.params to params
+        """
+        self.params = self.result.params
 
-    def plot_evalcomponents(self):
-        self.result.plot()
-        x = self.result.userkws['x']
-        for name, y in self.result.eval_components().items():
-            plt.plot(x, y, label=name)
-        plt.legend()
+    def plot(self, show_init=False, numpoints=1000, eval_components=False):
+        """
+        plot the fitting result
+
+            Parameters
+            ----------
+            show_init : bool, default False
+                plot fitting curve using initial parameter
+            numpoints : int, default 1000
+                data points to plot fitting curve
+            eval_components : bool, default False
+                plot each function
+        """
+        fig = plt.figure(figsize=(10,10))
+        ax1 = fig.add_axes((0.1, 0.15, 0.85, 0.55))
+        ax2 = fig.add_axes((0.1, 0.73, 0.85, 0.22))
+        ax2.set_xticklabels([])
+        ax2.set_ylabel('')
+
+        self.result.plot_fit(ax=ax1,
+                             show_init=show_init,
+                            numpoints=numpoints)
+        self.result.plot_residuals(ax=ax2)
+        self.peaksearch.plot(ax1)
+        ax1.set_title('')
+        ax2.set_title('')
+
+        if eval_components:
+            x = self.result.userkws['x']
+            for name, y in self.result.eval_components().items():
+                ax1.plot(x, y, label=name)
+            plt.show()
