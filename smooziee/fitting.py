@@ -5,6 +5,7 @@
 # fit data received from peak_search.PeakSearch
 ###############################################################################
 
+import copy
 import matplotlib.pyplot as plt
 import re
 import joblib
@@ -275,22 +276,49 @@ class Fitting():
             eval_components : bool, default False
                 plot each function
         """
+        self._base_plot(result=self.result,
+                        peaksearch=self.peaksearch,
+                        show_init=show_init,
+                        numpoints=numpoints,
+                        eval_components=eval_components)
+
+    def plot_from_params(self, show_init=False, numpoints=1000,
+                         eval_components=False):
+        def fix_all(params):
+            for param_name in params:
+                params[param_name].set(vary=False)
+
+        params = copy.deepcopy(self.params)
+        fix_all(params)
+        model = copy.deepcopy(self.model)
+
+        result = model.fit(self.peaksearch.y_data,
+                           params,
+                           x=self.peaksearch.x_data)
+        self._base_plot(result=result,
+                        peaksearch=self.peaksearch,
+                        show_init=show_init,
+                        numpoints=numpoints,
+                        eval_components=eval_components)
+
+    def _base_plot(self, result, peaksearch, show_init, numpoints,
+                   eval_components):
         fig = plt.figure(figsize=(10, 10))
         ax1 = fig.add_axes((0.1, 0.15, 0.85, 0.55))
         ax2 = fig.add_axes((0.1, 0.73, 0.85, 0.22))
         ax2.set_xticklabels([])
         ax2.set_ylabel('')
 
-        self.result.plot_fit(ax=ax1,
-                             show_init=show_init,
-                             numpoints=numpoints)
-        self.result.plot_residuals(ax=ax2)
-        self.peaksearch.plot(ax1)
+        result.plot_fit(ax=ax1,
+                        show_init=show_init,
+                        numpoints=numpoints)
+        result.plot_residuals(ax=ax2)
+        peaksearch.plot(ax1)
         ax1.set_title('')
         ax2.set_title('')
 
         if eval_components:
-            x = self.result.userkws['x']
-            for name, y in self.result.eval_components().items():
+            x = result.userkws['x']
+            for name, y in result.eval_components().items():
                 ax1.plot(x, y, label=name)
             plt.show()
