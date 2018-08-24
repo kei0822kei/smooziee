@@ -6,9 +6,12 @@
 ###############################################################################
 
 import copy
-import matplotlib.pyplot as plt
-import re
+import functools
 import joblib
+from operator import add
+import re
+
+import matplotlib.pyplot as plt
 import lmfit
 
 """
@@ -104,14 +107,12 @@ class Fitting():
                       for i, peak_func in enumerate(peak_funcs)]
             return models
 
-        models = models()
-
         # set attributes
         # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
         # print("the number of peak is %s"
         # % str(len(self.peaksearch.ix_peaks)))
-        self.model = sum(models[1:], models[0])
+        self.model = functools.reduce(add, models())
         self.params = self.model.make_params()
         self.result = None
 
