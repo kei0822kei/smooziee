@@ -5,10 +5,13 @@
 # fit data received from peak_search.PeakSearch
 ###############################################################################
 
-import matplotlib.pyplot as plt
-import re
+import copy
+import functools
 import joblib
-import smooziee.smooziee.peak_search as pksearch
+from operator import add
+import re
+
+import matplotlib.pyplot as plt
 import lmfit
 
 """
@@ -25,6 +28,7 @@ parameter names ... Each function's parameters which are noticed
 
 epsilon = 1e-8
 
+
 def load_peaksearch(peaksearch):
     """
     load from peaksearch of a file dumped by joblib
@@ -36,12 +40,13 @@ def load_peaksearch(peaksearch):
     """
     try:
         peak_search = joblib.load(peaksearch)
-    except:
+    except FileNotFoundError:
         peak_search = peaksearch
     # check
     if peak_search.ix_peaks is None:
         ValueError("ix_peaks was None, couldn't find ix_peaks")
     return peak_search
+
 
 def result_peaksearch(peaksearch, return_peak_num=True):
     """
@@ -63,6 +68,7 @@ def result_peaksearch(peaksearch, return_peak_num=True):
     plt.show()
     if return_peak_num:
         return peak_num
+
 
 class Fitting():
     """
@@ -95,20 +101,18 @@ class Fitting():
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
         """
 
-
         # make model function and params
         def models():
             models = [self._model(i, peak_func)
                       for i, peak_func in enumerate(peak_funcs)]
             return models
 
-        models = models()
-
         # set attributes
         # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
-        # print("the number of peak is %s" % str(len(self.peaksearch.ix_peaks)))
-        self.model = sum(models[1:], models[0])
+        # print("the number of peak is %s"
+        # % str(len(self.peaksearch.ix_peaks)))
+        self.model = functools.reduce(add, models())
         self.params = self.model.make_params()
         self.result = None
 
@@ -228,6 +232,18 @@ class Fitting():
                 for param_name in param_names:
                     set_vary(self._param_name(i_peak, param_name))
 
+    def set_params(self, i_peak, param_name, values):
+        """
+        i_peak: int
+            index of peak to set
+        peak_param: str
+            parameter name to set
+        values: dict
+            values to set
+
+        """
+        self.params[self._param_name(i_peak, param_name)].set(**values)
+
     def fit(self):
         """
         fit data using params
@@ -261,22 +277,49 @@ class Fitting():
             eval_components : bool, default False
                 plot each function
         """
-        fig = plt.figure(figsize=(10,10))
+        self._base_plot(result=self.result,
+                        peaksearch=self.peaksearch,
+                        show_init=show_init,
+                        numpoints=numpoints,
+                        eval_components=eval_components)
+
+    def plot_from_params(self, show_init=False, numpoints=1000,
+                         eval_components=False):
+        def fix_all(params):
+            for param_name in params:
+                params[param_name].set(vary=False)
+
+        params = copy.deepcopy(self.params)
+        fix_all(params)
+        model = copy.deepcopy(self.model)
+
+        result = model.fit(self.peaksearch.y_data,
+                           params,
+                           x=self.peaksearch.x_data)
+        self._base_plot(result=result,
+                        peaksearch=self.peaksearch,
+                        show_init=show_init,
+                        numpoints=numpoints,
+                        eval_components=eval_components)
+
+    def _base_plot(self, result, peaksearch, show_init, numpoints,
+                   eval_components):
+        fig = plt.figure(figsize=(10, 10))
         ax1 = fig.add_axes((0.1, 0.15, 0.85, 0.55))
         ax2 = fig.add_axes((0.1, 0.73, 0.85, 0.22))
         ax2.set_xticklabels([])
         ax2.set_ylabel('')
 
-        self.result.plot_fit(ax=ax1,
-                             show_init=show_init,
-                            numpoints=numpoints)
-        self.result.plot_residuals(ax=ax2)
-        self.peaksearch.plot(ax1)
+        result.plot_fit(ax=ax1,
+                        show_init=show_init,
+                        numpoints=numpoints)
+        result.plot_residuals(ax=ax2)
+        peaksearch.plot(ax1)
         ax1.set_title('')
         ax2.set_title('')
 
         if eval_components:
-            x = self.result.userkws['x']
-            for name, y in self.result.eval_components().items():
+            x = result.userkws['x']
+            for name, y in result.eval_components().items():
                 ax1.plot(x, y, label=name)
             plt.show()
