@@ -5,6 +5,10 @@
 # fit data received from peak_search.PeakSearch
 ###############################################################################
 
+"""
+fit data received from peak_search.PeakSearch
+"""
+
 import copy
 import functools
 import joblib
@@ -58,6 +62,12 @@ def result_peaksearch(peaksearch, return_peak_num=True):
             PeakSearch.ix_peaks must be set.
         return_peak_num : bool (default True)
             if True, return the number of peaks in peaksearch
+
+        Returns
+        -------
+        peak_num : int
+            the number of peaks in 'peaksearch'
+            if 'return_peak_num' is True, this is returned
     """
     processor = load_peaksearch(peaksearch)
     peak_num = len(processor.ix_peaks)
@@ -175,8 +185,6 @@ class Fitting():
 
     def _set_params_expr(self, param_names=['sigma']):
         """
-        Inputs
-        ------
         param_names: list of str
             ex. ['sigma']
 
@@ -201,19 +209,35 @@ class Fitting():
     def set_params_vary(self, i_peaks, param_names, vary,
                         all_param=False, onlyif_expr_isnone=None):
         """
-        i_peaks: list of int
-            index of peaks to fix  ex.[2, 9]
-        param_names: list of str
-            ex. ['center']
-        vary: bool
-        all_param: bool
-            If True, set all params' vary by vary.
-        onlyif_expr_isnone: bool
-            Set vary only if 'expr' is None.
-            Defaults to True if vary is True.
+        description of this instance
 
+            Parameters
+            ----------
+            i_peaks : list of int
+                index of peaks to fix  ex.[2, 9]
+            param_names : int
+                ex. ['center']
+            vary : bool
+            all_param : bool, default False
+                If True, set all params' vary by 'vary'.
+            onlyif_expr_isnone : bool
+                Set vary only if 'expr' is None.
+                Defaults to True if vary is True.
+
+            Returns
+            -------
+            fruit_price : int
+                description
+
+            Notes
+            -----
+
+            Raises
+            ------
+            ValueError
+                conditions which ValueError occurs
         """
-        def set_vary(param_name):
+        def _set_vary(param_name):
             if onlyif_expr_isnone:
                 if self.params[param_name].expr is None:
                     self.params[param_name].set(vary=vary)
@@ -226,21 +250,24 @@ class Fitting():
 
         if all_param:
             for param_name in self.params:
-                set_vary(param_name)
+                _set_vary(param_name)
         else:
             for i_peak in i_peaks:
                 for param_name in param_names:
-                    set_vary(self._param_name(i_peak, param_name))
+                    _set_vary(self._param_name(i_peak, param_name))
 
     def set_params(self, i_peak, param_name, values):
         """
-        i_peak: int
-            index of peak to set
-        peak_param: str
-            parameter name to set
-        values: dict
-            values to set
+        set parameters to 'params' attribute
 
+            Parameters
+            ----------
+            i_peak : int
+                index of peak to set
+            peak_param : str
+                parameter name to set
+            values : dict
+                values to set
         """
         self.params[self._param_name(i_peak, param_name)].set(**values)
 
@@ -248,9 +275,9 @@ class Fitting():
         """
         fit data using params
 
-        Note
-        ----
-        1. the result is set result attribute
+        Notes
+        -----
+        1. the result is set to 'result' attribute
         2. If you want to set the result to  new parameter,
            you have to conduct 'set_result_param_to_inital()'.
         """
@@ -285,12 +312,32 @@ class Fitting():
 
     def plot_from_params(self, show_init=False, numpoints=1000,
                          eval_components=False):
-        def fix_all(params):
+        """
+        description of this method
+
+            Parameters
+            ----------
+            show_init : bool, default False
+                description
+            numpoints : int, default 1000
+                description
+            eval_components : bool, default False
+                description
+
+            Notes
+            -----
+
+            Raises
+            ------
+            ValueError
+                conditions which ValueError occurs
+        """
+        def _fix_all(params):
             for param_name in params:
                 params[param_name].set(vary=False)
 
         params = copy.deepcopy(self.params)
-        fix_all(params)
+        _fix_all(params)
         model = copy.deepcopy(self.model)
 
         result = model.fit(self.peaksearch.y_data,
