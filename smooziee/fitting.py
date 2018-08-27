@@ -327,10 +327,6 @@ class Fitting():
             Notes
             -----
 
-            Raises
-            ------
-            ValueError
-                conditions which ValueError occurs
         """
         def _fix_all(params):
             for param_name in params:
