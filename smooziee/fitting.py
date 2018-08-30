@@ -110,6 +110,15 @@ class Fitting():
                 ex) ['lorentzian', 'gaussian', ....]
                 1. Now, you  can set 'lorentzian' or 'gaussian'.
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
+
+            Nones
+            -----
+            _set_params_value() => set x param (read from peaksearch object)
+            _set_params_expr() => set expr (read from peaksearch object)
+            _set_params_min(param_name='amplitude') => set mininum amplitude
+            _set_params_min(param_name='sigma') => set mininum sigma
+
+            at first, the values of 'amplitude' and 'sigma' are random valuas
         """
 
         # make model function and params
