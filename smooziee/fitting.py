@@ -12,6 +12,7 @@ fit data received from peak_search.PeakSearch
 import copy
 import functools
 import joblib
+import numpy as np
 from operator import add
 import re
 
@@ -291,16 +292,13 @@ class Fitting():
                         numpoints=numpoints,
                         eval_components=eval_components)
 
-    def plot_from_params(self, show_init=False, numpoints=1000,
-                         eval_components=False):
+    def plot_from_params(self, numpoints=1000, eval_components=False):
         """
         Plot current fitting result from self.params.
         This method doesn't change self.result and self.model.
 
             Parameters
             ----------
-            show_init : bool, default False
-                Whether to show the initial conditions for the fit.
             numpoints : int, default 1000
                 The final and initial fit curves are evaluated not only at
                 data points, but refined to contain numpoints points in total.
@@ -324,7 +322,7 @@ class Fitting():
                            x=self.peaksearch.x_data)
         self._base_plot(result=result,
                         peaksearch=self.peaksearch,
-                        show_init=show_init,
+                        show_init=False,
                         numpoints=numpoints,
                         eval_components=eval_components)
 
@@ -344,8 +342,13 @@ class Fitting():
         ax1.set_title('')
         ax2.set_title('')
 
+        x_array = result.userkws['x']
+        x_array_dense = np.linspace(min(x_array), max(x_array), numpoints)
+
         if eval_components:
-            x = result.userkws['x']
-            for name, y in result.eval_components().items():
-                ax1.plot(x, y, label=name)
-            plt.show()
+            for name, y in result.eval_components(
+                    **{'x': x_array_dense}).items():
+                ax1.plot(x_array_dense, y, label=name)
+
+        ax1.legend()
+        plt.show()
