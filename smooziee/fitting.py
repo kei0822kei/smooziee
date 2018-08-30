@@ -207,7 +207,7 @@ class Fitting():
                     set_expr(param_name, i, ix_peak)
 
     def set_params_vary(self, i_peaks, param_names, vary,
-                        all_param=False, onlyif_expr_isnone=None):
+                        all_param=False, onlyif_expr_isnone=True):
         """
         description of this instance
 
@@ -215,19 +215,16 @@ class Fitting():
             ----------
             i_peaks : list of int
                 index of peaks to fix  ex.[2, 9]
-            param_names : int
+            param_names : list of str
                 ex. ['center']
             vary : bool
             all_param : bool, default False
                 If True, set all params' vary by 'vary'.
-            onlyif_expr_isnone : bool
-                Set vary only if 'expr' is None.
-                Defaults to True if vary is True.
+            onlyif_expr_isnone : bool, default True
+                If True, set vary only if 'expr' is None.
 
             Returns
             -------
-            fruit_price : int
-                description
 
             Notes
             -----
@@ -243,10 +240,6 @@ class Fitting():
                     self.params[param_name].set(vary=vary)
             else:
                 self.params[param_name].set(vary=vary)
-
-        if onlyif_expr_isnone is None:
-            if vary:
-                onlyif_expr_isnone = True
 
         if all_param:
             for param_name in self.params:
