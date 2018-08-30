@@ -12,6 +12,7 @@ fit data received from peak_search.PeakSearch
 import copy
 import functools
 import joblib
+import numpy as np
 from operator import add
 import re
 
@@ -206,10 +207,9 @@ class Fitting():
                 if pair_i_peak(ix_peak) is not None:
                     set_expr(param_name, i, ix_peak)
 
-    def set_params_vary(self, i_peaks, param_names, vary,
-                        all_param=False, onlyif_expr_isnone=True):
+    def set_params_vary(self, i_peaks, param_names, vary):
         """
-        description of this instance
+        Set vary only if expr is None.
 
             Parameters
             ----------
@@ -218,10 +218,6 @@ class Fitting():
             param_names : list of str
                 ex. ['center']
             vary : bool
-            all_param : bool, default False
-                If True, set all params' vary by 'vary'.
-            onlyif_expr_isnone : bool, default True
-                If True, set vary only if 'expr' is None.
 
             Returns
             -------
@@ -235,19 +231,12 @@ class Fitting():
                 conditions which ValueError occurs
         """
         def _set_vary(param_name):
-            if onlyif_expr_isnone:
-                if self.params[param_name].expr is None:
-                    self.params[param_name].set(vary=vary)
-            else:
+            if self.params[param_name].expr is None:
                 self.params[param_name].set(vary=vary)
 
-        if all_param:
-            for param_name in self.params:
-                _set_vary(param_name)
-        else:
-            for i_peak in i_peaks:
-                for param_name in param_names:
-                    _set_vary(self._param_name(i_peak, param_name))
+        for i_peak in i_peaks:
+            for param_name in param_names:
+                _set_vary(self._param_name(i_peak, param_name))
 
     def set_params(self, i_peak, param_name, values):
         """
@@ -303,19 +292,18 @@ class Fitting():
                         numpoints=numpoints,
                         eval_components=eval_components)
 
-    def plot_from_params(self, show_init=False, numpoints=1000,
-                         eval_components=False):
+    def plot_from_params(self, numpoints=1000, eval_components=False):
         """
-        description of this method
+        Plot current fitting result from self.params.
+        This method doesn't change self.result and self.model.
 
             Parameters
             ----------
-            show_init : bool, default False
-                description
             numpoints : int, default 1000
-                description
+                The final and initial fit curves are evaluated not only at
+                data points, but refined to contain numpoints points in total.
             eval_components : bool, default False
-                description
+                Whether to show the each component plots.
 
             Notes
             -----
@@ -334,7 +322,7 @@ class Fitting():
                            x=self.peaksearch.x_data)
         self._base_plot(result=result,
                         peaksearch=self.peaksearch,
-                        show_init=show_init,
+                        show_init=False,
                         numpoints=numpoints,
                         eval_components=eval_components)
 
@@ -354,8 +342,13 @@ class Fitting():
         ax1.set_title('')
         ax2.set_title('')
 
+        x_array = result.userkws['x']
+        x_array_dense = np.linspace(min(x_array), max(x_array), numpoints)
+
         if eval_components:
-            x = result.userkws['x']
-            for name, y in result.eval_components().items():
-                ax1.plot(x, y, label=name)
-            plt.show()
+            for name, y in result.eval_components(
+                    **{'x': x_array_dense}).items():
+                ax1.plot(x_array_dense, y, label=name)
+
+        ax1.legend()
+        plt.show()
