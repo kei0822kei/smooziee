@@ -89,6 +89,8 @@ class Fitting():
         ----------
         peaksearch : smooziee.smooziee.peak_search.PeakSearch object
             PeakSearch object including data peaks and peak pairs
+        i_peakpairs : list of list of int
+            list of [i j], which means i'th and j'th peaks are pair.
         model : lmfit.model.CompositreModel object
             sum of the models such as lorentzian fitted using data peaks
         params : lmfit.parameter.Parameters object
@@ -130,6 +132,7 @@ class Fitting():
         # set attributes
         # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
+        self.i_peakpairs = self._i_peakpairs()
         # print("the number of peak is %s"
         # % str(len(self.peaksearch.ix_peaks)))
         self.model = functools.reduce(add, models())
@@ -174,6 +177,14 @@ class Fitting():
         match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
         return match_names
 
+    def _i_peakpairs(self):
+        def _iter_i_peakpairs():
+            for ix_peakpair in self.peaksearch.ix_peakpairs:
+                assert len(ix_peakpair) == 2
+                yield [self.peaksearch.ix_peaks.index(ix_peakpair[i])
+                       for i in range(2)]
+        return list(_iter_i_peakpairs())
+
     def _set_params_min(self, param_name, min_=epsilon):
         """
         Inputs
@@ -199,22 +210,22 @@ class Fitting():
             ex. ['sigma']
 
         """
-        def pair_i_peak(ix_peak):
+        def _pair_i_peak(i_peak):
             pair_i_peak = None
-            for ix_peakpair in self.peaksearch.ix_peakpairs:
-                if ix_peakpair[1] == ix_peak:
-                    pair_i_peak = self.peaksearch.ix_peaks.index(
-                        ix_peakpair[0])
+            for i_peakpair in self.i_peakpairs:
+                if i_peakpair[1] == i_peak:
+                    pair_i_peak = i_peakpair[0]
             return pair_i_peak
 
-        def set_expr(param_name, i, ix_peak):
-            expr = self._param_name(pair_i_peak(ix_peak), param_name)
-            self.params[self._param_name(i, param_name)].set(expr=expr)
+        def set_expr(param_name, i_peak, pair_i_peak):
+            expr = self._param_name(pair_i_peak, param_name)
+            self.params[self._param_name(i_peak, param_name)].set(expr=expr)
 
-        for param_name in param_names:
-            for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
-                if pair_i_peak(ix_peak) is not None:
-                    set_expr(param_name, i, ix_peak)
+        for i_peak in range(len(self.peaksearch.ix_peaks)):
+            for param_name in param_names:
+                pair_i_peak = _pair_i_peak(i_peak)
+                if pair_i_peak is not None:
+                    set_expr(param_name, i_peak, pair_i_peak)
 
     def set_params_vary(self, i_peaks, param_names, vary):
         """
