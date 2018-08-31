@@ -7,6 +7,12 @@
 
 """
 fit data received from peak_search.PeakSearch
+
+### CODING NOTICE ###
+
+# Naming
+function names ... Follow "lmfit.lineshapes" function
+                    ('lorentzian', 'gaussian', ...)
 """
 
 import copy
@@ -19,20 +25,7 @@ import re
 import matplotlib.pyplot as plt
 import lmfit
 
-"""
-### CODING NOTICE ###
-
-# Naming
-function names ... Follow "lmfit.lineshapes" function
-                    ('lorentzian', 'gaussian', ...)
-parameter names ... Each function's parameters which are noticed
-                    in lmfit's documentation of "built-in models"
-                    (for lorentzian, 'amplitude', 'center', ...)
-
-"""
-
 epsilon = 1e-8
-
 
 def load_peaksearch(peaksearch):
     """
@@ -239,12 +232,6 @@ class Fitting():
                 ex. ['center']
             vary : bool
 
-            Returns
-            -------
-
-            Notes
-            -----
-
             Raises
             ------
             ValueError
@@ -302,9 +289,10 @@ class Fitting():
             show_init : bool, default False
                 plot fitting curve using initial parameter
             numpoints : int, default 1000
-                data points to plot fitting curve
+                The final and initial fit curves are evaluated not only at
+                data points, but refined to contain numpoints points in total.
             eval_components : bool, default False
-                plot each function
+                Whether to show the each component plots.
         """
         self._base_plot(result=self.result,
                         peaksearch=self.peaksearch,
@@ -324,10 +312,6 @@ class Fitting():
                 data points, but refined to contain numpoints points in total.
             eval_components : bool, default False
                 Whether to show the each component plots.
-
-            Notes
-            -----
-
         """
         def _fix_all(params):
             for param_name in params:
@@ -372,3 +356,69 @@ class Fitting():
 
         ax1.legend()
         plt.show()
+
+    def output(self, gpifile, i_center, filename):
+        """
+        output the results
+
+            Parameters
+            ----------
+            paramname1 : int
+                description
+            paramname2 : int, default var
+                description
+
+            Returns
+            -------
+            fruit_price : int
+                description
+
+            Notes
+            -----
+
+            Raises
+            ------
+            ValueError
+                conditions which ValueError occurs
+        """
+        def _center_shift(i_center):
+            """
+            return shift value
+            """
+            center_names = self._param_names('center')
+            shift = None
+            for peakpair in self.i_peakpairs:
+                if i_center in peakpair:
+                    center1 = self.params[center_names[peakpair[0]]].value
+                    center2 = self.params[center_names[peakpair[1]]].value
+                    shift = ((center1 + center2) / 2) * (-1)
+                    center_peak = peakpair
+                    print("set center using peak pair : %s" % str(peakpair))
+                    break
+            if shift is None:
+                shift = self.params[center_names[i_center]].value * (-1)
+                center_peak = i_center
+                print("set center using peak : %s" % str(i_center))
+            print("shift is %s" % str(shift))
+            return shift, center_peak
+
+        def _read_qpoint(gpifile):
+            """
+            return qpoint
+            """
+            import smooziee.smooziee.gpi as gpi
+            tf_num = 'tf_'+self.peaksearch.name[-1]
+            gpi_reader = gpi.GPI_reader(gpifile)
+            qpoint = gpi_reader.qpoint(tf_num)
+            return qpoint
+
+        def _get_params():
+            """
+            return parameters
+            """
+
+
+        results = {}
+        shift, center_peak = _center_shift(i_center)
+        results['center_shift'] = {'shift':shift, 'center_peak':center_peak}
+        results['qpoint'] = qpoint
