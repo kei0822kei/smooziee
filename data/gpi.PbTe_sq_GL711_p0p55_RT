@@ -1,0 +1,287 @@
+####################################
+# Gnuplot infput file for plotting IXS spectra
+# 
+# must change things between "#>>>>>>>>>>>>> and #<<<<<<<<<<<<<<<<<" lines 
+# and also details of individual pages (plot ranges, scale, etc)
+# and other things as needed
+# use "exit" to terminate input in middle of file, if so desired
+
+# note styles "ls #" :  1 = red  ;  2 = green (bkgd)  ; 3 = blue (data);  5 = light blue (resolution)
+set style line 1 lt 1 lw 1.5 pt 1 ps 0.5
+set style line 2 lt 2 lw 1.5 pt 2 ps 0.5 
+set style line 3 lt 3 lw 1.5 pt 1 ps 0.5
+set style line 4 lt 4 lw 1.5 pt 4 ps 0.5 
+set style line 5 lt 5 lw 1.5 pt 5 ps 0.5 
+set style line 9 lt 5 lw 0.0 pt 1 ps 0.0
+
+# columns in typical data file
+# col 1 is meV based on resolution measurements and input values in icscan.inp
+# col 2 is meV based on center (FWHM) of peak position
+# col 7 is norm to apd3
+# col 8 is error on col 7
+# col 9 is norm to unit peak
+# col 10 is error on col 9
+
+set bar 0
+set terminal postscript color solid 7
+set key right
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+set output "PbTe_sq_GL711_p0p55_RT.ps"
+main_title = "PbTe at (7.548 1.316 1.402) at RT  dQ=(0.04 0.01 0.037)"
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# put in rate in normalizer (apd3, typically) in cps to make rate in (approximately) cps
+ysf=3.5e4
+#scale factor for background transmission (if any)
+bsf = ysf * 1
+# xcol=1 = pre-defined energy zero; xcol=2 -> zero is center of largest peak (disordered systems)
+xcol=1
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# scale factor for resolution functions
+# set os=0 to prevent plotting resolution function, set os=1 otherwise
+os = 0.
+rs1 = 2.*os
+rs2 = 1.2*os
+rs3 = 1.*os
+rs4 = 1.*os
+rs5 = 1.8*os
+rs6 = 1.2*os
+rs7 = 1.*os
+rs8 = 1.*os
+rs9 = 2.*os
+rs10 = 1.6*os
+rs11 = 1.3*os
+rs12 = 1.*os 
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# string names
+# filenames:   f=main  fr=resolution_function  fb=background  fs=subtracted
+
+f_prefix = "df/PbTe_sq_GL711_p0p55_RT"
+
+fr_prefix = ""
+fb_prefix = "" 
+fbs_prefix = "" 
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+f_1  = f_prefix."_1"; f_2  = f_prefix."_2"; f_3  = f_prefix."_3"; f_4  = f_prefix."_4"
+f_5  = f_prefix."_5"; f_6  = f_prefix."_6"; f_7  = f_prefix."_7"; f_8  = f_prefix."_8"
+f_9  = f_prefix."_9"; f_10 = f_prefix."_10"; f_11 = f_prefix."_11"; f_12 = f_prefix."_12"
+fr_1  = fr_prefix."_1"; fr_2  = fr_prefix."_2"; fr_3  = fr_prefix."_3"; fr_4  = fr_prefix."_4"
+fr_5  = fr_prefix."_5"; fr_6  = fr_prefix."_6"; fr_7  = fr_prefix."_7"; fr_8  = fr_prefix."_8"
+fr_9  = fr_prefix."_9"; fr_10 = fr_prefix."_10"; fr_11 = fr_prefix."_11"; fr_12 = fr_prefix."_12"
+fb_1  = fb_prefix."_1"; fb_2  = fb_prefix."_2"; fb_3  = fb_prefix."_3"; fb_4  = fb_prefix."_4"
+fb_5  = fb_prefix."_5"; fb_6  = fb_prefix."_6"; fb_7  = fb_prefix."_7"; fb_8  = fb_prefix."_8"
+fb_9  = fb_prefix."_9"; fb_10 = fb_prefix."_10"; fb_11 = fb_prefix."_11"; fb_12 = fb_prefix."_12"
+fbs_1  = fbs_prefix."_1"; fbs_2  = fbs_prefix."_2"; fbs_3  = fbs_prefix."_3"; fbs_4  = fbs_prefix."_4"
+fbs_5  = fbs_prefix."_5"; fbs_6  = fbs_prefix."_6"; fbs_7  = fbs_prefix."_7"; fbs_8  = fbs_prefix."_8"
+fbs_9  = fbs_prefix."_9"; fbs_10 = fbs_prefix."_10"; fbs_11 = fbs_prefix."_11"; fbs_12 = fbs_prefix."_12"
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# strings for graph keys
+tf_1 = "A_1 " 
+tfb_1 = ""
+tfbs_1 = ""
+tf_2 = "A_2 " 
+tfb_2 = ""
+tfbs_2 = ""
+tf_3 = "A_3 " 
+tfb_3 = ""
+tfbs_3 = ""
+tf_4 = "A_4 " 
+tfb_4 = ""
+tfbs_4 = ""
+
+tf_5 = "A_5 " 
+tfb_5 = ""
+tfbs_5 = ""
+tf_6 = "A_6 " 
+tfb_6 = ""
+tfbs_6 = ""
+tf_7 = "A_7 " 
+tfb_7 = ""
+tfbs_7 = ""
+tf_8 = "A_8 " 
+tfb_8 = ""
+tfbs_8 = ""
+
+tf_9 = "A_9 " 
+tfb_9 = ""
+tfbs_9 = ""
+tf_10 = "A_{10} " 
+tfb_10 = ""
+tfbs_10 = ""
+tf_11 = "A_{11} " 
+tfb_11 = ""
+tfbs_11 = ""
+tf_12 = "A_{12} " 
+tfb_12 = ""
+tfbs_12 = ""
+
+tf_1="A_{1} (7.350, 1.350, 1.350)"
+tf_2="A_{2} (7.482, 1.328, 1.385)"
+tf_3="A_{3} (7.614, 1.304, 1.419)"
+tf_4="A_{4} (7.745, 1.279, 1.455)"
+tf_5="A_{5} (7.320, 1.379, 1.482)"
+tf_6="A_{6} (7.452, 1.357, 1.517)"
+tf_7="A_{7} (7.584, 1.333, 1.551)"
+tf_8="A_{8} (7.715, 1.307, 1.587)"
+tf_9="A_{9} (7.379, 1.320, 1.218)"
+tf_10="A_{10} (7.511, 1.298, 1.253)"
+tf_11="A_{11} (7.643, 1.274, 1.288)"
+tf_12="A_{12} (7.775, 1.249, 1.323)"
+
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+#####################################################################################
+# plot of central peak
+#####################################################################################
+set multiplot
+# kluge to put over-all title on top of plot
+set nologscale y; set title ""; set xlabel ""; set ylabel""; set samples 2
+set xrange[-1:1]; set yrange [-1:1]
+# Following is a kluge to put an over-all title on a plot
+set label 1 main_title at 0.,0.05 center font "Times-Roman,18" 
+set origin 0.0,0.9; set size 1,0.1
+set noxtics ; set noytics; set noborder; set nogrid
+f(x)=x; plot  f(x) not w p ls 9
+#plot  using xcol:($7*0) not w p ls 9
+set label 1 ""; set xtics; set ytics; set border; set grid
+# end of kluge
+
+#>>>>>>>>>>>>>>>>
+set nologscale y
+set yrange [0.0:*]
+set xrange[-15:25]
+#<<<<<<<<<<<<<<<<
+
+set origin 0.75,0.30; set size 0.25,0.30
+plot 	f_1 using xcol:($7*ysf):($8*ysf) t tf_1 w e ls 3,\
+	fr_1 using xcol:($9*rs1) not w l ls 5,\
+	fb_1 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.30; set size 0.25,0.30
+plot 	f_2 using xcol:($7*ysf):($8*ysf) t tf_2 w e ls 3,\
+	fr_2 using xcol:($9*rs2) not w l ls 5,\
+	fb_2 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.30; set size 0.25,0.30
+plot 	f_3 using xcol:($7*ysf):($8*ysf) t tf_3 w e ls 3,\
+	fr_3 using xcol:($9*rs3) not w l ls 5,\
+	fb_3 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.30; set size 0.25,0.30
+plot 	f_4 using xcol:($7*ysf):($8*ysf) t tf_4 w e ls 3,\
+	fr_4 using xcol:($9*rs4) not w l ls 5,\
+	fb_4 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+set origin 0.75,0.0; set size 0.25,0.30
+plot 	f_5 using xcol:($7*ysf):($8*ysf) t tf_5 w e ls 3,\
+	fr_5 using xcol:($9*rs5) not w l ls 5,\
+	fb_5 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.0; set size 0.25,0.30
+plot 	f_6 using xcol:($7*ysf):($8*ysf) t tf_6 w e ls 3,\
+	fr_6 using xcol:($9*rs6) not w l ls 5,\
+	fb_6 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.0; set size 0.25,0.30
+plot 	f_7 using xcol:($7*ysf):($8*ysf) t tf_7 w e ls 3,\
+	fr_7 using xcol:($9*rs7) not w l ls 5,\
+	fb_7 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.0; set size 0.25,0.30
+plot 	f_8 using xcol:($7*ysf):($8*ysf) t tf_8 w e ls 3,\
+	fr_8 using xcol:($9*rs8) not w l ls 5,\
+	fb_8 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+set origin 0.75,0.60; set size 0.25,0.30
+plot 	f_9 using xcol:($7*ysf):($8*ysf) t tf_9 w e ls 3,\
+	fr_9 using xcol:($9*rs9) not w l ls 5,\
+	fb_9 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.60; set size 0.25,0.30
+plot 	f_10 using xcol:($7*ysf):($8*ysf) t tf_10 w e ls 3,\
+	fr_10 using xcol:($9*rs10) not w l ls 5,\
+	fb_10 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.60; set size 0.25,0.30
+plot 	f_11 using xcol:($7*ysf):($8*ysf) t tf_11 w e ls 3,\
+	fr_11 using xcol:($9*rs11) not w l ls 5,\
+	fb_11 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.60; set size 0.25,0.30
+plot 	f_12 using xcol:($7*ysf):($8*ysf) t tf_12 w e ls 3,\
+	fr_12 using xcol:($9*rs12) not w l ls 5,\
+	fb_12 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+
+set nomultiplot
+
+#####################################################################################
+# plot of central peak
+#####################################################################################
+set multiplot
+# kluge to put over-all title on top of plot
+set nologscale y; set title ""; set xlabel ""; set ylabel""; set samples 2
+set xrange[-1:1]; set yrange [-1:1]
+# Following is a kluge to put an over-all title on a plot
+set label 1 main_title at 0.,0.05 center font "Times-Roman,18" 
+set origin 0.0,0.9; set size 1,0.1
+set noxtics ; set noytics; set noborder; set nogrid
+f(x)=x; plot  f(x) not w p ls 9
+#plot  using xcol:($7*0) not w p ls 9
+set label 1 ""; set xtics; set ytics; set border; set grid
+# end of kluge
+
+#>>>>>>>>>>>>>>>>
+set nologscale y
+set yrange [0.0:*]
+set xrange[0:15]
+#<<<<<<<<<<<<<<<<
+
+set origin 0.75,0.30; set size 0.25,0.30
+plot 	f_1 using xcol:($7*ysf):($8*ysf) t tf_1 w e ls 3,\
+	fr_1 using xcol:($9*rs1) not w l ls 5,\
+	fb_1 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.30; set size 0.25,0.30
+plot 	f_2 using xcol:($7*ysf):($8*ysf) t tf_2 w e ls 3,\
+	fr_2 using xcol:($9*rs2) not w l ls 5,\
+	fb_2 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.30; set size 0.25,0.30
+plot 	f_3 using xcol:($7*ysf):($8*ysf) t tf_3 w e ls 3,\
+	fr_3 using xcol:($9*rs3) not w l ls 5,\
+	fb_3 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.30; set size 0.25,0.30
+plot 	f_4 using xcol:($7*ysf):($8*ysf) t tf_4 w e ls 3,\
+	fr_4 using xcol:($9*rs4) not w l ls 5,\
+	fb_4 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+set origin 0.75,0.0; set size 0.25,0.30
+plot 	f_5 using xcol:($7*ysf):($8*ysf) t tf_5 w e ls 3,\
+	fr_5 using xcol:($9*rs5) not w l ls 5,\
+	fb_5 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.0; set size 0.25,0.30
+plot 	f_6 using xcol:($7*ysf):($8*ysf) t tf_6 w e ls 3,\
+	fr_6 using xcol:($9*rs6) not w l ls 5,\
+	fb_6 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.0; set size 0.25,0.30
+plot 	f_7 using xcol:($7*ysf):($8*ysf) t tf_7 w e ls 3,\
+	fr_7 using xcol:($9*rs7) not w l ls 5,\
+	fb_7 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.0; set size 0.25,0.30
+plot 	f_8 using xcol:($7*ysf):($8*ysf) t tf_8 w e ls 3,\
+	fr_8 using xcol:($9*rs8) not w l ls 5,\
+	fb_8 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+set origin 0.75,0.60; set size 0.25,0.30
+plot 	f_9 using xcol:($7*ysf):($8*ysf) t tf_9 w e ls 3,\
+	fr_9 using xcol:($9*rs9) not w l ls 5,\
+	fb_9 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.5,0.60; set size 0.25,0.30
+plot 	f_10 using xcol:($7*ysf):($8*ysf) t tf_10 w e ls 3,\
+	fr_10 using xcol:($9*rs10) not w l ls 5,\
+	fb_10 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.25,0.60; set size 0.25,0.30
+plot 	f_11 using xcol:($7*ysf):($8*ysf) t tf_11 w e ls 3,\
+	fr_11 using xcol:($9*rs11) not w l ls 5,\
+	fb_11 using xcol:($7*bsf):($8*bsf) not w e ls 2
+set origin 0.0,0.60; set size 0.25,0.30
+plot 	f_12 using xcol:($7*ysf):($8*ysf) t tf_12 w e ls 3,\
+	fr_12 using xcol:($9*rs12) not w l ls 5,\
+	fb_12 using xcol:($7*bsf*3):($8*bsf*3) not w e ls 2
+
+set nomultiplot
