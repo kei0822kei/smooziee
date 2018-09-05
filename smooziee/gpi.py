@@ -103,7 +103,6 @@ class GPI_reader():
         keyword = tf_num+'='
         tf_num_lines = self._extract_line(keyword)
         self._check_list_len(tf_num_lines, 1)
-        print(str(tf_num_lines))
         tf_num_line = tf_num_lines[0]
         start = tf_num_line.find("(")
         end = tf_num_line.find(")")
