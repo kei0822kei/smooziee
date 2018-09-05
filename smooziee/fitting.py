@@ -21,6 +21,8 @@ import joblib
 import numpy as np
 from operator import add
 import re
+import os
+import json
 
 import matplotlib.pyplot as plt
 import lmfit
@@ -38,7 +40,7 @@ def load_peaksearch(peaksearch):
     """
     try:
         peak_search = joblib.load(peaksearch)
-    except FileNotFoundError:
+    except:
         peak_search = peaksearch
     # check
     if peak_search.ix_peaks is None:
@@ -74,13 +76,56 @@ def result_peaksearch(peaksearch, return_peak_num=True):
         return peak_num
 
 
+def load_json(jsonfile):
+    """
+    return object written in 'jsonfile'
+
+        Parameters
+        ----------
+        jsonfile : str
+            json file
+
+        Returns
+        -------
+        obj : various
+            object written in 'jsonfile'
+    """
+    with open(jsonfile) as f:
+        obj = json.load(f)
+    return obj
+
+
+def load_fitting(dirname):
+    """
+    load Fitting class object from 'dirname'
+
+        Parameters
+        ----------
+        dirname : str
+            saved directory name using 'Fitting.save' method
+
+        Returns
+        -------
+        fitter : Fitting class obj
+            loaded Fitting class object
+    """
+    peaksearch = load_peaksearch(os.path.join(dirname, 'peak_search.pkl'))
+    peak_funcs = load_json(os.path.join(dirname, 'peak_funcs.json'))
+    lm_parameter = lmfit.Parameters()
+    with open(os.path.join(dirname, 'params.json')) as f:
+        params = lm_parameter.load(f)
+    fitter = Fitting(peaksearch, peak_funcs)
+    fitter.params = params
+    return fitter
+
+
 class Fitting():
     """
     fit data by this class
 
         Attributes
         ----------
-        peaksearch : smooziee.smooziee.peak_search.PeakSearch object
+        peaksearch : smooziee.peak_search.PeakSearch object
             PeakSearch object including data peaks and peak pairs
         i_peakpairs : list of list of int
             list of [i j], which means i'th and j'th peaks are pair.
@@ -128,6 +173,7 @@ class Fitting():
         self.i_peakpairs = self._i_peakpairs()
         # print("the number of peak is %s"
         # % str(len(self.peaksearch.ix_peaks)))
+        self.peak_funcs = peak_funcs
         self.model = functools.reduce(add, models())
         self.params = self.model.make_params()
         self.result = None
@@ -300,7 +346,8 @@ class Fitting():
                         numpoints=numpoints,
                         eval_components=eval_components)
 
-    def plot_from_params(self, numpoints=1000, eval_components=False):
+    def plot_from_params(self, numpoints=1000,
+                         eval_components=False, filename=None):
         """
         Plot current fitting result from self.params.
         This method doesn't change self.result and self.model.
@@ -312,6 +359,9 @@ class Fitting():
                 data points, but refined to contain numpoints points in total.
             eval_components : bool, default False
                 Whether to show the each component plots.
+            filename : str, default None
+                If 'filename' is not 'None',
+                figure is saved whose name is 'filename'.
         """
         def _fix_all(params):
             for param_name in params:
@@ -328,10 +378,11 @@ class Fitting():
                         peaksearch=self.peaksearch,
                         show_init=False,
                         numpoints=numpoints,
-                        eval_components=eval_components)
+                        eval_components=eval_components,
+                        filename=filename)
 
     def _base_plot(self, result, peaksearch, show_init, numpoints,
-                   eval_components):
+                   eval_components, filename=None):
         fig = plt.figure(figsize=(10, 10))
         ax1 = fig.add_axes((0.1, 0.15, 0.85, 0.55))
         ax2 = fig.add_axes((0.1, 0.73, 0.85, 0.22))
@@ -355,9 +406,28 @@ class Fitting():
                 ax1.plot(x_array_dense, y, label=name)
 
         ax1.legend()
+        if filename is not None:
+            fig.savefig(filename)
         plt.show()
+        plt.close()
 
-    def output(self, gpifile, i_center, filename):
+    def save(self, dirname):
+        """
+        description of this method
+
+            Parameters
+            ----------
+            dirname : str
+                save directory name
+        """
+        os.mkdir(dirname)
+        self.peaksearch.save(os.path.join(dirname, "peak_search.pkl"))
+        with open(os.path.join(dirname, "params.json"), 'w') as f:
+            self.params.dump(f)
+        with open(os.path.join(dirname, "peak_funcs.json"), 'w') as f:
+            json.dump(self.peak_funcs, f)
+
+    def output(self, gpifile, i_center, header='result'):
         """
         output the results
 
@@ -366,9 +436,7 @@ class Fitting():
             paramname1 : int
                 description
             paramname2 : int, default var
-                description
-
-            Returns
+                description Returns
             -------
             fruit_price : int
                 description
@@ -406,19 +474,43 @@ class Fitting():
             """
             return qpoint
             """
-            import smooziee.smooziee.gpi as gpi
+            from smooziee import gpi
             tf_num = 'tf_'+self.peaksearch.name[-1]
             gpi_reader = gpi.GPI_reader(gpifile)
-            qpoint = gpi_reader.qpoint(tf_num)
-            return qpoint
+            qp = gpi_reader.qpoint(tf_num)
+            return qp
 
         def _get_params():
             """
             return parameters
             """
+            param_names = list(self.params.keys())
+            prefixes = set()
+            for name in param_names:
+                prefixes.add(name[:2])
+            prefixes = list(prefixes)
+            params = {}
+            for prefix in prefixes:
+                params[prefix] = {}
+                prefix_params = [ names for names in param_names if prefix in names ]
+                for name in prefix_params:
+                    params[prefix][name[3:]] = self.params[name].value
+            return params
 
+        def _param_shift(params, shift):
+            """
+            return shifted parameters
+            """
+            for key in params.keys():
+                params[key]['center'] = params[key]['center'] + shift
+            return params
 
         results = {}
         shift, center_peak = _center_shift(i_center)
         results['center_shift'] = {'shift':shift, 'center_peak':center_peak}
-        results['qpoint'] = qpoint
+        results['qpoint'] = _read_qpoint(gpifile)
+        results['params'] = _get_params()
+        results['shifted_params'] = _param_shift(results['params'], shift)
+        joblib.dump(results, header+'.pkl')
+        self.plot_from_params(eval_components=True, filename=header+'.png')
+        self.save(header+'_dump')

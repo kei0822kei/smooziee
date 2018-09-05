@@ -219,6 +219,7 @@ class PeakSearch():
             raise ValueError("run_mode must be 'test' or 'run'")
 
         if run_mode == 'test':
+            cur_ix_peakpairs = self.ix_peakpairs
             self.ix_peakpairs = ix_peakpairs
             fig = plt.figure()
             ax = fig.add_subplot(111)
@@ -226,6 +227,7 @@ class PeakSearch():
             plt.title(self.name)
             plt.show()
             plt.close()
+            self.ix_peakpairs = cur_ix_peakpairs
         else:
             self.ix_peakpairs = ix_peakpairs
 
@@ -263,13 +265,13 @@ class PeakSearch():
                        self.y_data[self.ix_peaks]*1.1,
                        c=c_lst, s=40, marker='v')
 
-    def save(self, filename):
+    def save(self, filename='peak_search.pkl'):
         """
         save object
 
             Parameters
             ----------
-            filename : str
+            filename : str, default 'peaksearch.pkl'
               output filename
         """
         import joblib
