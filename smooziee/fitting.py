@@ -109,7 +109,7 @@ def load_fitting(dirname):
         fitter : Fitting class obj
             loaded Fitting class object
     """
-    peaksearch = load_peaksearch(os.path.join(dirname, 'peaksearch.pkl'))
+    peaksearch = load_peaksearch(os.path.join(dirname, 'peak_search.pkl'))
     peak_funcs = load_json(os.path.join(dirname, 'peak_funcs.json'))
     lm_parameter = lmfit.Parameters()
     with open(os.path.join(dirname, 'params.json')) as f:
@@ -409,6 +409,7 @@ class Fitting():
         if filename is not None:
             fig.savefig(filename)
         plt.show()
+        plt.close()
 
     def save(self, dirname):
         """
