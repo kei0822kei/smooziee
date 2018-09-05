@@ -420,7 +420,7 @@ class Fitting():
                 save directory name
         """
         os.mkdir(dirname)
-        self.peaksearch.save(os.path.join(dirname, "peaksearch.pkl"))
+        self.peaksearch.save(os.path.join(dirname, "peak_search.pkl"))
         with open(os.path.join(dirname, "params.json"), 'w') as f:
             self.params.dump(f)
         with open(os.path.join(dirname, "peak_funcs.json"), 'w') as f:
