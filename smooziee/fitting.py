@@ -168,11 +168,8 @@ class Fitting():
             return models
 
         # set attributes
-        # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
         self.i_peakpairs = self._i_peakpairs()
-        # print("the number of peak is %s"
-        # % str(len(self.peaksearch.ix_peaks)))
         self.peak_funcs = peak_funcs
         self.model = functools.reduce(add, models())
         self.params = self.model.make_params()
@@ -186,7 +183,6 @@ class Fitting():
     def _model(self, i, peak_func):
         """
         Have to set in order that self._param_name() can convert
-
         """
         if peak_func == 'lorentzian':
             prefix = 'l' + str(i) + '_'
@@ -198,7 +194,6 @@ class Fitting():
     def _param_name(self, i_peak, param_name):
         """
         ex. i_peak=1, param_name='sigma' => 'g1_sigma'
-
         """
         r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
         match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
@@ -230,7 +225,6 @@ class Fitting():
         ------
         param_name: str
             ex. 'amplitude'
-
         """
         for _param_name in self._param_names(param_name):
             self.params[_param_name].set(min=min_)
@@ -247,7 +241,6 @@ class Fitting():
         """
         param_names: list of str
             ex. ['sigma']
-
         """
         def _pair_i_peak(i_peak):
             pair_i_peak = None

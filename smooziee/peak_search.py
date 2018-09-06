@@ -64,6 +64,7 @@ class PeakSearch():
         self.name = name
         self.ix_peaks = None
         self.ix_peakpairs = None
+        self.ix_degenerates = None
 
     def find_peak(self, order):
         """
@@ -154,7 +155,6 @@ class PeakSearch():
         else:
             print("set new ix_peaks to self.ix_peaks")
             self.ix_peaks = old_ix_peaks
-
 
     def find_peak_pair(self, threshold=6):
         """
@@ -256,14 +256,35 @@ class PeakSearch():
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
             else:
                 c_lst = ['black' for _ in range(len(self.ix_peaks))]
-                color_lst = plt.rcParams['axes.prop_cycle'].by_key()['color'][3:]
+                color_lst = \
+                    plt.rcParams['axes.prop_cycle'].by_key()['color'][3:]
                 for i in range(len(self.ix_peakpairs)):
                     for j in self.ix_peakpairs[i]:
                         c_lst[self.ix_peaks.index(j)] = color_lst[i]
 
             ax.scatter(self.x_data[self.ix_peaks],
                        self.y_data[self.ix_peaks]*1.1,
-                       c=c_lst, s=40, marker='v')
+                       c=c_lst, s=20, marker='v')
+
+        # degenerate
+        if self.ix_degenerates is not None:
+            for i,(x,y) in enumerate(zip(self.x_data[self.ix_peaks],
+                                         self.y_data[self.ix_peaks]*1.1)):
+                ax.annotate(str(self.ix_degenerates[i]),(x,y))
+
+    def set_degenerate(self, ix_degenerates):
+        """
+        set degenerate
+
+            Parameters
+            ----------
+            ix_degenerates : list of int
+                degenerate infomation of each peaks
+                  ex) ix_degenerates = [1,1,2,1,2,1,1]
+                      these corresponds with each peak point
+                      each number corresponds with the number of degenerate
+        """
+        self.ix_degenerates = ix_degenerates
 
     def save(self, filename='peak_search.pkl'):
         """
@@ -274,6 +295,13 @@ class PeakSearch():
             filename : str, default 'peaksearch.pkl'
               output filename
         """
+        def _check_obj(obj):
+            if obj is None:
+                ValueError("%s is None, please set before save" % obj)
+
+        check_objs = [self.ix_peaks, self.ix_peakpairs, self.ix_degenerates]
+        for obj in check_objs:
+            _check_obj(obj)
         import joblib
         joblib.dump(self, filename)
 
