@@ -28,7 +28,7 @@ import copy
 import matplotlib.pyplot as plt
 import lmfit
 
-epsilon = 1e-8
+epsilon = 1e-2
 
 def load_peaksearch(peaksearch):
     """
@@ -67,7 +67,7 @@ def result_peaksearch(peaksearch, return_peak_num=True):
             if 'return_peak_num' is True, this is returned
     """
     processor = load_peaksearch(peaksearch)
-    peak_num = len(processor.ix_peaks)
+    peak_num = sum(processor.degenerates)
     print("the number of peaks: %s" % str(peak_num))
     fig = plt.figure()
     ax = fig.add_subplot(111)

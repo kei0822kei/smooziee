@@ -42,7 +42,7 @@ class PeakSearch():
         from the minimun data point, NOT FROM THE MINIMUM PEAK POINT.
 
     """
-    def __init__(self, x=None, y=None, name=None):
+    def __init__(self, x=None, y=None, name=None, qpoint=None):
         """
         set attributes
 
@@ -57,11 +57,16 @@ class PeakSearch():
         name : str, default None
             data name
             don't have to be set
+
+        qpoint : list of float, default None
+            data qpoint
+            this is used when you plot figure
         """
         # set attributes
         self.x_data = x
         self.y_data = y
         self.name = name
+        self.qpoint = qpoint
         self.ix_peaks = None
         self.ix_peakpairs = None
         self.degenerates = None
@@ -149,7 +154,7 @@ class PeakSearch():
             self.plot(ax)
             ax.scatter(self.x_data[idx], self.y_data[idx]*1.1,
                        marker="*", c='blue', s=40)
-            ax.set_title(self.name)
+            ax.set_title(self.name+' ('+str(self.qpoint)+')')
             plt.show()
             plt.close()
         else:
@@ -224,7 +229,7 @@ class PeakSearch():
             fig = plt.figure()
             ax = fig.add_subplot(111)
             self.plot(ax)
-            plt.title(self.name)
+            ax.set_title(self.name+' ('+str(self.qpoint)+')')
             plt.show()
             plt.close()
             self.ix_peakpairs = cur_ix_peakpairs
@@ -245,7 +250,7 @@ class PeakSearch():
         """
         # raw data
         ax.scatter(self.x_data, self.y_data, c='red', s=2)
-        ax.set_title(self.name)
+        ax.set_title(self.name+' ('+str(self.qpoint)+')')
 
         if run_mode == 'raw_data':
             return
