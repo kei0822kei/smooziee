@@ -92,15 +92,15 @@ class GPI_reader():
 
             Parameters
             ----------
-            tf_num : str
-                if tf_num='tf_4', get qpoint of tf_4 analizer
+            tf_num : int
+                if tf_num=4, get qpoint of tf_4 analizer
 
             Returns
             -------
             q_point : list of float
                 q point of tf_num
         """
-        keyword = tf_num+'='
+        keyword = 'tf_'+str(tf_num)+'='
         tf_num_lines = self._extract_line(keyword)
         self._check_list_len(tf_num_lines, 1)
         tf_num_line = tf_num_lines[0]

@@ -23,11 +23,12 @@ from operator import add
 import re
 import os
 import json
+import copy
 
 import matplotlib.pyplot as plt
 import lmfit
 
-epsilon = 1e-8
+epsilon = 1e-2
 
 def load_peaksearch(peaksearch):
     """
@@ -66,7 +67,7 @@ def result_peaksearch(peaksearch, return_peak_num=True):
             if 'return_peak_num' is True, this is returned
     """
     processor = load_peaksearch(peaksearch)
-    peak_num = len(processor.ix_peaks)
+    peak_num = sum(processor.degenerates)
     print("the number of peaks: %s" % str(peak_num))
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -160,20 +161,21 @@ class Fitting():
 
             at first, the values of 'amplitude' and 'sigma' are random valuas
         """
-
         # make model function and params
         def models():
             models = [self._model(i, peak_func)
-                      for i, peak_func in enumerate(peak_funcs)]
+                      for i, peak_func in enumerate(self.peak_funcs)]
             return models
 
         # set attributes
-        # self.peaksearch = peaksearch
         self.peaksearch = load_peaksearch(peaksearch)
-        self.i_peakpairs = self._i_peakpairs()
-        # print("the number of peak is %s"
-        # % str(len(self.peaksearch.ix_peaks)))
-        self.peak_funcs = peak_funcs
+        self.orig_peak_funcs = peak_funcs
+        self.i_peaks, \
+        self.i_peakpairs, \
+        self.i_degenerates, \
+        self.peak_funcs, \
+        self.ext_ix_peaks = \
+            self._i_peaks_peakpairs_peak_funcs(peak_funcs)
         self.model = functools.reduce(add, models())
         self.params = self.model.make_params()
         self.result = None
@@ -186,7 +188,6 @@ class Fitting():
     def _model(self, i, peak_func):
         """
         Have to set in order that self._param_name() can convert
-
         """
         if peak_func == 'lorentzian':
             prefix = 'l' + str(i) + '_'
@@ -198,7 +199,6 @@ class Fitting():
     def _param_name(self, i_peak, param_name):
         """
         ex. i_peak=1, param_name='sigma' => 'g1_sigma'
-
         """
         r = re.compile('^[a-zA-Z]+%d_%s' % (i_peak, param_name))
         match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
@@ -216,13 +216,28 @@ class Fitting():
         match_names = [mpn for mpn in self.model.param_names if r.match(mpn)]
         return match_names
 
-    def _i_peakpairs(self):
-        def _iter_i_peakpairs():
-            for ix_peakpair in self.peaksearch.ix_peakpairs:
-                assert len(ix_peakpair) == 2
-                yield [self.peaksearch.ix_peaks.index(ix_peakpair[i])
-                       for i in range(2)]
-        return list(_iter_i_peakpairs())
+    def _i_peaks_peakpairs_peak_funcs(self, peak_funcs):
+        ix_peaks = self.peaksearch.ix_peaks
+        ix_peakpairs = self.peaksearch.ix_peakpairs
+        degen = self.peaksearch.degenerates
+        ext_ix_peaks = []
+        i_degenerates = []
+        new_peak_funcs = []
+        for i in range(len(ix_peaks)):
+            if degen[i] == 2:
+                p_len = len(ext_ix_peaks)
+                i_degenerates.append([p_len, p_len+1])
+            ext_ix_peaks.extend([ix_peaks[i] for _ in range(degen[i])])
+            new_peak_funcs.extend([peak_funcs[i] for _ in range(degen[i])])
+        i_peaks = [i for i in range(len(ext_ix_peaks))]
+        i_peakpairs = []
+        for ix_peakpair in ix_peakpairs:
+            i_peakpair = []
+            for peak in ix_peakpair:
+                i_peakpair.append(ext_ix_peaks.index(peak))
+            i_peakpairs.append(i_peakpair)
+        return i_peaks, i_peakpairs, i_degenerates, new_peak_funcs, \
+               ext_ix_peaks
 
     def _set_params_min(self, param_name, min_=epsilon):
         """
@@ -230,7 +245,6 @@ class Fitting():
         ------
         param_name: str
             ex. 'amplitude'
-
         """
         for _param_name in self._param_names(param_name):
             self.params[_param_name].set(min=min_)
@@ -239,32 +253,28 @@ class Fitting():
         def value(ix_peak):
             return self.peaksearch.x_data[ix_peak]
 
-        for i, ix_peak in enumerate(self.peaksearch.ix_peaks):
+        for i, ix_peak in enumerate(self.ext_ix_peaks):
             self.params[self._param_name(i, param_name)].set(
                 value=value(ix_peak))
 
-    def _set_params_expr(self, param_names=['sigma']):
-        """
-        param_names: list of str
-            ex. ['sigma']
-
-        """
-        def _pair_i_peak(i_peak):
-            pair_i_peak = None
-            for i_peakpair in self.i_peakpairs:
-                if i_peakpair[1] == i_peak:
-                    pair_i_peak = i_peakpair[0]
-            return pair_i_peak
-
-        def set_expr(param_name, i_peak, pair_i_peak):
-            expr = self._param_name(pair_i_peak, param_name)
-            self.params[self._param_name(i_peak, param_name)].set(expr=expr)
-
-        for i_peak in range(len(self.peaksearch.ix_peaks)):
+    def _set_params_expr(self):
+        def _set_param_expr(i_peaks, param_names):
+            """
+            if i_peaks = [3,5,6], param_names = ['sigma', 'amplitude'],
+            then set 'sigma' and amplitude of 5 and 6's expr
+            (to the same values as that of 3's)
+            """
             for param_name in param_names:
-                pair_i_peak = _pair_i_peak(i_peak)
-                if pair_i_peak is not None:
-                    set_expr(param_name, i_peak, pair_i_peak)
+                expr = self._param_name(i_peaks[0], param_name)
+                for i_peak in i_peaks[1:]:
+                    self.params[
+                        self._param_name(i_peak, param_name)].set(expr=expr)
+
+        for i_peakpair in self.i_peakpairs:
+            _set_param_expr(i_peaks=i_peakpair, param_names=['sigma'])
+        for i_degenerate in self.i_degenerates:
+            _set_param_expr(i_peaks=i_degenerate,
+                                  param_names=['sigma', 'amplitude', 'center'])
 
     def set_params_vary(self, i_peaks, param_names, vary):
         """
@@ -304,7 +314,22 @@ class Fitting():
             values : dict
                 values to set
         """
-        self.params[self._param_name(i_peak, param_name)].set(**values)
+        revise_i_peaks = [i_peak]
+        if param_name == 'sigma':
+            for i_peakpair in self.i_peakpairs:
+                if i_peak in i_peakpair:
+                    revise_i_peaks.extend(i_peakpair)
+        iter_peaks = copy.deepcopy(revise_i_peaks)
+        for iter_peak in iter_peaks:
+             for i_degenerate in self.i_degenerates:
+                 if iter_peak in i_degenerate:
+                     revise_i_peaks.extend(i_degenerate)
+        revise_i_peaks = list(set(revise_i_peaks))
+        print("revise peaks : %s" % str(revise_i_peaks))
+        for revise_i_peak in revise_i_peaks:
+            self.params[
+                self._param_name(revise_i_peak, param_name)].set(**values)
+        self._set_params_expr()
 
     def fit(self):
         """
@@ -425,9 +450,9 @@ class Fitting():
         with open(os.path.join(dirname, "params.json"), 'w') as f:
             self.params.dump(f)
         with open(os.path.join(dirname, "peak_funcs.json"), 'w') as f:
-            json.dump(self.peak_funcs, f)
+            json.dump(self.orig_peak_funcs, f)
 
-    def output(self, gpifile, i_center, header='result'):
+    def output(self, gpifile, i_center, output_dir, header='result'):
         """
         output the results
 
@@ -475,7 +500,7 @@ class Fitting():
             return qpoint
             """
             from smooziee import gpi
-            tf_num = 'tf_'+self.peaksearch.name[-1]
+            tf_num = int(self.peaksearch.name[-1])
             gpi_reader = gpi.GPI_reader(gpifile)
             qp = gpi_reader.qpoint(tf_num)
             return qp
@@ -511,6 +536,7 @@ class Fitting():
         results['qpoint'] = _read_qpoint(gpifile)
         results['params'] = _get_params()
         results['shifted_params'] = _param_shift(results['params'], shift)
-        joblib.dump(results, header+'.pkl')
-        self.plot_from_params(eval_components=True, filename=header+'.png')
-        self.save(header+'_dump')
+        savename = os.path.join(output_dir, header)
+        joblib.dump(results, savename+'.pkl')
+        self.plot_from_params(eval_components=True, filename=savename+'.png')
+        self.save(os.path.join(savename+'_dump'))
