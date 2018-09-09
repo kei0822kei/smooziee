@@ -28,7 +28,7 @@ import copy
 import matplotlib.pyplot as plt
 import lmfit
 
-epsilon = 1e-2
+epsilon = 0.05
 
 def load_peaksearch(peaksearch):
     """
@@ -185,6 +185,7 @@ class Fitting():
         self._set_params_expr()
         self._set_params_min(param_name='amplitude')
         self._set_params_min(param_name='sigma')
+        self.set_params_max(param_name='sigma', max_=2)
 
     def _model(self, i, peak_func):
         """
@@ -249,6 +250,11 @@ class Fitting():
         """
         for _param_name in self._param_names(param_name):
             self.params[_param_name].set(min=min_)
+
+    def set_params_max(self, param_name, max_):
+        for _param_name in self._param_names(param_name):
+            self.params[_param_name].set(max=max_)
+
 
     def _set_params_value(self, param_name='center', width=None):
         def value(ix_peak):
