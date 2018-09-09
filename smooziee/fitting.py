@@ -138,7 +138,7 @@ class Fitting():
             parameters after fitting
     """
 
-    def __init__(self, peaksearch, peak_funcs):
+    def __init__(self, peaksearch, peak_funcs, center_width=0.5):
         """
         set ix_peaks, ix_peakpairs and lmfit.model.
 
@@ -146,11 +146,12 @@ class Fitting():
             ----------
             peaksearch : peak_search.PeakSearch obj or hdf5
                 PeakSearch.ix_peaks must be set.
-
             peak_funcs : lst
                 ex) ['lorentzian', 'gaussian', ....]
                 1. Now, you  can set 'lorentzian' or 'gaussian'.
                 2. len(lst) must be the same as len(PeakSearch.ix_peaks)
+            center_width :float, default 0.5
+                set center min and center max
 
             Nones
             -----
@@ -180,7 +181,7 @@ class Fitting():
         self.params = self.model.make_params()
         self.result = None
 
-        self._set_params_value()
+        self._set_params_value(width=center_width)
         self._set_params_expr()
         self._set_params_min(param_name='amplitude')
         self._set_params_min(param_name='sigma')
@@ -249,13 +250,17 @@ class Fitting():
         for _param_name in self._param_names(param_name):
             self.params[_param_name].set(min=min_)
 
-    def _set_params_value(self, param_name='center'):
+    def _set_params_value(self, param_name='center', width=None):
         def value(ix_peak):
             return self.peaksearch.x_data[ix_peak]
 
         for i, ix_peak in enumerate(self.ext_ix_peaks):
             self.params[self._param_name(i, param_name)].set(
                 value=value(ix_peak))
+            if width is not None:
+                self.params[self._param_name(i, param_name)].set(
+                    min=value(ix_peak)-width,
+                    max=value(ix_peak)+width)
 
     def _set_params_expr(self):
         def _set_param_expr(i_peaks, param_names):
