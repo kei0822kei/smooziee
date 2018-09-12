@@ -463,7 +463,8 @@ class Fitting():
         with open(os.path.join(dirname, "peak_funcs.json"), 'w') as f:
             json.dump(self.orig_peak_funcs, f)
 
-    def output(self, gpifile, i_center, output_dir, header='result'):
+    def output(self, gpifile, i_center, output_dir, header='result',
+               LO_idx=None, TO_idx=None, elastic_idx=None):
         """
         output the results
 
@@ -550,3 +551,24 @@ class Fitting():
         joblib.dump(results, savename+'.pkl')
         self.plot_from_params(eval_components=True, filename=savename+'.png')
         self.save(os.path.join(savename+'_dump'))
+
+        if self.peak_funcs[LO_idx] == 'lorentzian':
+            LO_params = results['shifted_params']['l'+str(LO_idx)]
+        if self.peak_funcs[TO_idx] == 'lorentzian':
+            TO_params = results['shifted_params']['l'+str(TO_idx)]
+        if self.peak_funcs[elastic_idx] == 'lorentzian':
+            elastic_params = results['shifted_params']['l'+str(elastic_idx)]
+        summary = { 'FileID':self.peaksearch.name,
+                    'qx':results['qpoint'][0],
+                    'qy':results['qpoint'][1],
+                    'qz':results['qpoint'][2],
+                    'TO_center':TO_params['center'],
+                    'TO_FWHM':TO_params['fwhm'],
+                    'TO_Area':TO_params['amplitude'],
+                    'LO_center':LO_params['center'],
+                    'LO_FWHM':LO_params['fwhm'],
+                    'LO_Area':LO_params['amplitude'],
+                    'elastic_center':elastic_params['center'],
+                    'peak_shift':results['center_shift']['shift']
+                  }
+        joblib.dump(summary, savename+'_summary.pkl')
