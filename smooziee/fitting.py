@@ -473,7 +473,6 @@ class Fitting():
                 description
             paramname2 : int, default var
                 description Returns
-            -------
             fruit_price : int
                 description
 
