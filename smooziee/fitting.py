@@ -185,7 +185,7 @@ class Fitting():
         self._set_params_expr()
         self._set_params_min(param_name='amplitude')
         self._set_params_min(param_name='sigma')
-        self.set_params_max(param_name='sigma', max_=2)
+        self.set_params_max(param_name='sigma', max_=5)
 
     def _model(self, i, peak_func):
         """
@@ -552,23 +552,27 @@ class Fitting():
         self.plot_from_params(eval_components=True, filename=savename+'.png')
         self.save(os.path.join(savename+'_dump'))
 
-        if self.peak_funcs[LO_idx] == 'lorentzian':
-            LO_params = results['shifted_params']['l'+str(LO_idx)]
-        if self.peak_funcs[TO_idx] == 'lorentzian':
-            TO_params = results['shifted_params']['l'+str(TO_idx)]
-        if self.peak_funcs[elastic_idx] == 'lorentzian':
-            elastic_params = results['shifted_params']['l'+str(elastic_idx)]
         summary = { 'FileID':self.peaksearch.name,
                     'qx':results['qpoint'][0],
                     'qy':results['qpoint'][1],
                     'qz':results['qpoint'][2],
-                    'TO_center':TO_params['center'],
-                    'TO_FWHM':TO_params['fwhm'],
-                    'TO_Area':TO_params['amplitude'],
-                    'LO_center':LO_params['center'],
-                    'LO_FWHM':LO_params['fwhm'],
-                    'LO_Area':LO_params['amplitude'],
-                    'elastic_center':elastic_params['center'],
                     'peak_shift':results['center_shift']['shift']
                   }
+
+        if LO_idx is not None:
+            if self.peak_funcs[LO_idx] == 'lorentzian':
+                LO_params = results['shifted_params']['l'+str(LO_idx)]
+                summary['LO_center'] = LO_params['center']
+                summary['LO_FWHM'] = LO_params['fwhm']
+                summary['LO_amplitude'] = LO_params['amplitude']
+        if TO_idx is not None:
+            if self.peak_funcs[TO_idx] == 'lorentzian':
+                TO_params = results['shifted_params']['l'+str(TO_idx)]
+                summary['TO_center'] = TO_params['center']
+                summary['TO_FWHM'] = TO_params['fwhm']
+                summary['TO_amplitude'] = TO_params['amplitude']
+        if self.peak_funcs[elastic_idx] == 'lorentzian':
+            elastic_params = results['shifted_params']['l'+str(elastic_idx)]
+            summary['elastic_center'] = elastic_params['center']
+
         joblib.dump(summary, savename+'_summary.pkl')
