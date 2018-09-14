@@ -523,14 +523,17 @@ class Fitting():
             param_names = list(self.params.keys())
             prefixes = set()
             for name in param_names:
-                prefixes.add(name[:2])
+                bar_idx = name.find('_')
+                prefixes.add(name[:bar_idx])
+
             prefixes = list(prefixes)
             params = {}
             for prefix in prefixes:
                 params[prefix] = {}
                 prefix_params = [ names for names in param_names if prefix in names ]
                 for name in prefix_params:
-                    params[prefix][name[3:]] = self.params[name].value
+                    bar_idx = name.find('_')
+                    params[prefix][name[bar_idx+1:]] = self.params[name].value
             return params
 
         def _param_shift(params, shift):
