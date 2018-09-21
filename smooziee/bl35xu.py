@@ -37,10 +37,14 @@ class All_data():
 
         Attributes
         ----------
-        Attribute1 : int
-            description
-        Attribute2 : int, default var
-            description
+        datafiles : list of str
+            data file path list
+        gpifiles : list of str
+            gpi file path list
+        alldata : list of pd.DataFrame
+            all data in datafiles
+        self.qpoints : list of list of float
+            qpoints of each data
 
         Methods
         -------
@@ -49,7 +53,7 @@ class All_data():
         -----
     """
 
-    def __init__(alldata):
+    def __init__(self, alldata):
         """
         init
 
@@ -66,16 +70,19 @@ class All_data():
         self.datafiles = []
         self.gpifiles = []
         for i in range(len(alldata)):
-            self.datafiles.append(alldata[0])
-            self.gpifiles.append(alldata[1])
+            self.datafiles.append(alldata[i][0])
+            self.gpifiles.append(alldata[i][1])
 
         self.alldata = []
         self.qpoints = []
         self.datanames = []
         for i in range(len(self.datafiles)):
-            self.alldata.append(data2df(self.datafiles[i]))
-            dataname = os.basename(self.datafiles[i])
+            data_df = data2df(self.datafiles[i])
+            a_name = [ key for key in data_df.keys() if 'a' in key ][0]
+            data_df.rename(columns={a_name:'a'}, inplace=True)
+            self.alldata.append(data_df)
+            dataname = os.path.basename(self.datafiles[i])
             self.datanames.append(dataname)
             tf_num = int(dataname[-1])
-            gpi_reader = gpi.GPI_reader(self.gpifiles[i], tf_num=tf_num)
+            gpi_reader = gpi.GPI_reader(self.gpifiles[i])
             self.qpoints.append(gpi_reader.qpoint(tf_num))
